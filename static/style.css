@@ -1,0 +1,8 @@
+body {
+  font-family: system-ui, apple-system, sans-serif;
+  line-height: 1.5;
+  padding: 20px;
+}
+li {
+  margin: 12px 0;
+}
