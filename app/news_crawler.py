@@ -1,13 +1,15 @@
 # app/news_crawler.py
 from __future__ import annotations
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from hashlib import md5
-from typing import Iterable, List, Dict, Any
+from typing import Iterable, List, Dict, Any, Optional
 import logging
+import calendar
 
 import requests
 import feedparser
 from bs4 import BeautifulSoup
+from dateutil import parser as dtparser  # ← 문자열 날짜 파싱
 
 # 한국 매체 일부가 UA/언어 헤더 없으면 403/차단하는 케이스가 있어 헤더 강화
 DEFAULT_HEADERS = {
@@ -37,14 +39,20 @@ def _hash_id(text: str) -> str:
     return md5(text.encode("utf-8", errors="ignore")).hexdigest()
 
 
-def _safe_struct_to_dt(t) -> datetime:
-    """feedparser의 published_parsed / updated_parsed (time.struct_time)를 datetime(UTC)로."""
+def _struct_time_to_utc(t) -> Optional[datetime]:
+    """
+    feedparser의 published_parsed / updated_parsed (time.struct_time)를
+    안전하게 UTC datetime으로 변환.
+    struct_time은 tz를 안가지므로 'UTC 기준의 절대 시각'으로 처리한다.
+    """
+    if not t:
+        return None
     try:
-        if t:
-            return datetime(*t[:6], tzinfo=timezone.utc)
+        # struct_time -> epoch(UTC) -> datetime(UTC)
+        ts = calendar.timegm(t)  # timegm은 입력을 UTC로 간주
+        return datetime.fromtimestamp(ts, tz=timezone.utc)
     except Exception:
-        pass
-    return datetime(1970, 1, 1, tzinfo=timezone.utc)
+        return None
 
 
 def _http_fetch(url: str, timeout: int = 10) -> dict:
@@ -67,15 +75,44 @@ def _http_fetch(url: str, timeout: int = 10) -> dict:
     return out
 
 
+def _parse_entry_datetime(e: dict, default_tz: timezone) -> datetime:
+    """
+    엔트리에서 날짜를 파싱해 tz-aware UTC datetime으로 반환.
+    우선순위:
+      1) published / updated 문자열 → dateutil로 파싱
+         - tz 없으면 default_tz 적용
+      2) published_parsed / updated_parsed(struct_time) → UTC로 변환
+      3) 실패 시 현재 UTC
+    """
+    # 1) 문자열 우선
+    raw = e.get("published") or e.get("updated") or e.get("dc:date") or e.get("pubDate")
+    if raw:
+        try:
+            dt = dtparser.parse(raw)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=default_tz)
+            return dt.astimezone(timezone.utc)
+        except Exception:
+            pass
+
+    # 2) struct_time 보조
+    dt2 = _struct_time_to_utc(e.get("published_parsed") or e.get("updated_parsed"))
+    if dt2:
+        return dt2
+
+    # 3) 최후의 보루
+    return _utc_now()
+
+
 def fetch_rss_news(
     feeds: Iterable[str],
     limit_per_feed: int = 30,
     request_timeout: int = 10,
+    default_tz: Optional[timezone] = timezone.utc,  # ★ 피드별 기본 타임존
 ) -> List[Dict[str, Any]]:
     """
     주어진 RSS/Atom 피드들에서 기사 목록 수집.
-    - 시간은 RSS가 제공하는 published/updated 기준
-    - 신문사별 커스텀 파서는 제거, feedparser가 준 값 그대로 사용
+    - 시간은 엔트리의 날짜를 tz-aware UTC로 정규화하여 published에 ISO Z로 저장
     반환 아이템 공통 스키마:
       {
         id, title, url, link, source, published(UTC ISO Z),
@@ -83,6 +120,7 @@ def fetch_rss_news(
       }
     """
     items: List[Dict[str, Any]] = []
+    default_tz = default_tz or timezone.utc  # None 방지
 
     for feed_url in feeds:
         meta = _http_fetch(feed_url, timeout=request_timeout)
@@ -97,7 +135,7 @@ def fetch_rss_news(
         feed_info = parsed.get("feed", {}) or {}
         source = (feed_info.get("title") or feed_info.get("link") or feed_url).strip()
 
-        bozo = getattr(parsed, "bozo", 0)
+        bozo = int(getattr(parsed, "bozo", 0))
         bozo_exc = getattr(parsed, "bozo_exception", "")
         entries = (parsed.get("entries") or [])[:limit_per_feed]
 
@@ -112,10 +150,10 @@ def fetch_rss_news(
                 continue
 
             title = (e.get("title") or "").strip()
-            published_dt = _safe_struct_to_dt(
-                e.get("published_parsed") or e.get("updated_parsed")
-            )
-            summary_html = e.get("summary", "")
+            # ★ 핵심: 피드 기본 타임존을 반영하여 UTC로 정규화
+            published_dt_utc = _parse_entry_datetime(e, default_tz=default_tz)
+
+            summary_html = e.get("summary", "") or e.get("content", [{}])[0].get("value", "")
             summary_text = BeautifulSoup(summary_html, "html.parser").get_text(" ").strip()
 
             items.append({
@@ -124,14 +162,13 @@ def fetch_rss_news(
                 "url": link,
                 "link": link,
                 "source": source,
-                "published": published_dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "published": published_dt_utc.strftime("%Y-%m-%dT%H:%M:%SZ"),  # UTC ISO Z
                 "summary": summary_text,
                 "summary_text": summary_text,
                 "summary_html": summary_html,
-                "related": [],  # 구글 뉴스 묶음 같은 건 일단 비움
+                "related": [],
                 "scraped_at": _utc_now_str(),
             })
-
     return items
 
 

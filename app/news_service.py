@@ -1,81 +1,112 @@
+# app/news_service.py
+from __future__ import annotations
+
 from datetime import datetime, timedelta, timezone
-from dateutil import parser
-import logging
+from typing import List, Dict
+from zoneinfo import ZoneInfo
 
 from app.news_crawler import fetch_rss_news
-from app.feeds import FEEDS
 
-LIMIT_PER_FEED = 100
-logger = logging.getLogger(__name__)
+# -----------------------
+# 피드
+# -----------------------
+US_FEEDS = [
+    "https://www.cnbc.com/id/100003114/device/rss/rss.html",
+    "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml",
+
+    # Google News - 미국
+    "https://news.google.com/rss?hl=en&gl=US&ceid=US:en",
+    "https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=en&gl=US&ceid=US:en",
+    "https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=en&gl=US&ceid=US:en",
+]
+
+KR_FEEDS = [
+    "https://www.hankyung.com/feed/it",
+    "https://www.hankyung.com/feed/economy",
 
 
-def collect_recent_news(
-    days: float = 1.0,
-    top: int = 30,
-    country: str | None = None,
-    section: str | None = None
-):
-    """
-    최근 일정 기간(days) 이내의 기사 중 최신순으로 top개 반환
-    - FEEDS 구조: FEEDS[country][section]
-    - country, section이 None이면 전체 다 긁어옴
-    """
-    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    # Google News - 한국
+    "https://news.google.com/rss?hl=ko&gl=KR&ceid=KR:ko",
+    "https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=ko&gl=KR&ceid=KR:ko",
+    "https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=ko&gl=KR&ceid=KR:ko",
+]
 
-    all_news = []
 
-    # 국가 필터링
-    selected_countries = [country] if country else FEEDS.keys()
+# -----------------------
+# 타임존/포맷
+# -----------------------
+KST = ZoneInfo("Asia/Seoul")
+ET  = ZoneInfo("America/New_York")
+ISO_Z_FMT = "%Y-%m-%dT%H:%M:%SZ"  # fetch_rss_news가 반환하는 UTC ISO-Z
 
-    for c in selected_countries:
-        sections = FEEDS[c]
+def _cutoff_utc(days: int) -> datetime:
+    return datetime.now(timezone.utc) - timedelta(days=days)
 
-        # 섹션 필터링
-        selected_sections = [section] if section else sections.keys()
+def _parse_utc_iso_z(s: str) -> datetime:
+    return datetime.strptime(s, ISO_Z_FMT).replace(tzinfo=timezone.utc)
 
-        for s in selected_sections:
-            feeds = sections[s]
-            items = fetch_rss_news(feeds, limit_per_feed=LIMIT_PER_FEED)
+def _fmt_local(dt_utc: datetime, tz: ZoneInfo, fmt: str = "%Y-%m-%d %H:%M:%S") -> str:
+    return dt_utc.astimezone(tz).strftime(fmt)
 
-            for n in items:
-                n["country"] = c
-                n["section"] = s
-            all_news.extend(items)
-    # ✅ 중복 제거 (여기서 바로 처리)
-    seen = set()
-    deduped = []
-    for n in all_news:
-        if n["id"] in seen:
+def _tz_label(tz: ZoneInfo) -> str:
+    return "KST" if tz.key == "Asia/Seoul" else ("ET" if tz.key == "America/New_York" else tz.key)
+
+# -----------------------
+# 핵심 수집기 (UTC 비교 + 로컬표시)
+# -----------------------
+def _collect(
+    feeds: List[str],
+    display_tz: ZoneInfo,
+    days: int,
+    country_tag: str,
+    limit_per_feed: int = 30
+) -> List[Dict]:
+    # ★ 중요: KR/US별 기본 타임존을 fetch 단계에 전달
+    items = fetch_rss_news(
+        feeds,
+        limit_per_feed=limit_per_feed,
+        default_tz=display_tz,   # ← 이 줄 때문에 KR이 다시 잡힘
+    )
+
+    cutoff = _cutoff_utc(days)
+    out: List[Dict] = []
+
+    for n in items:
+        pub_str = n.get("published")
+        if not pub_str:
             continue
-        seen.add(n["id"])
-        deduped.append(n)
-
-    all_news = deduped
-    logger.info(f"Fetched {len(all_news)} total news items")
-
-    # 날짜 필터링
-    filtered = []
-    for n in all_news:
         try:
-            pub_dt = parser.parse(n.get("published"))
-            if pub_dt.tzinfo is None:
-                pub_dt = pub_dt.replace(tzinfo=timezone.utc)
+            pub_dt_utc = _parse_utc_iso_z(pub_str)
         except Exception:
             continue
 
-        if pub_dt >= cutoff:
-            n["_parsed_date"] = pub_dt
-            filtered.append(n)
+        if pub_dt_utc >= cutoff:
+            n["published_dt_utc"]    = pub_dt_utc
+            n["published_local_str"] = _fmt_local(pub_dt_utc, display_tz)
+            n["local_tz"] = _tz_label(display_tz)
+            if country_tag:
+                n["country"] = country_tag
+            out.append(n)
 
-    logger.info(f"Filtered down to {len(filtered)} items within {days} days")
+    out.sort(key=lambda x: x["published_dt_utc"], reverse=True)
+    return out
 
-    # 최신순 정렬 후 상위 N개
-    filtered.sort(key=lambda x: x["_parsed_date"], reverse=True)
-    final_items = filtered[:top]
+def collect_recent_news_kr(days: int = 3, limit_per_feed: int = 30) -> List[Dict]:
+    return _collect(KR_FEEDS, KST, days, "kr", limit_per_feed)
 
-    return final_items, {
-        "total": len(all_news),
-        "after_filter": len(filtered),
-        "returned": len(final_items),
-        "cutoff": cutoff.isoformat(),
+def collect_recent_news_us(days: int = 3, limit_per_feed: int = 30) -> List[Dict]:
+    return _collect(US_FEEDS, ET, days, "us", limit_per_feed)
+
+# -----------------------
+# 상단 요약
+# -----------------------
+def build_summary(us_list: List[Dict], kr_list: List[Dict], days_us: int = 3, days_kr: int = 3) -> Dict:
+    now_us = datetime.now(ET)
+    now_kr = datetime.now(KST)
+    return {
+        "total": len(us_list) + len(kr_list),
+        "us": len(us_list),
+        "kr": len(kr_list),
+        "range_us": f"{(now_us - timedelta(days=days_us)):%Y-%m-%d %H:%M} ~ {now_us:%Y-%m-%d %H:%M} (ET)",
+        "range_kr": f"{(now_kr - timedelta(days=days_kr)):%Y-%m-%d %H:%M} ~ {now_kr:%Y-%m-%d %H:%M} (KST)",
     }

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>NextPicker News</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <h1>Recent News ({{ summary.total }})</h1>
+  <p>US: {{ summary.us }} / KR: {{ summary.kr }}</p>
+  <p>
+    US Range: {{ summary.range_us }}<br/>
+    KR Range: {{ summary.range_kr }}
+  </p>
+
+  <h2>US News</h2>
+  <ul>
+    {% for n in news_us %}
+      <li>
+        <a href="{{ n.url }}" target="_blank">{{ n.title }}</a>
+        <small> — {{ n.source }} · {{ n.published_local_str }} {{ n.local_tz }} · {{ n.country|upper }}</small>
+        <div>{{ n.summary }}</div>
+      </li>
+    {% endfor %}
+  </ul>
+
+  <h2>KR News</h2>
+  <ul>
+    {% for n in news_kr %}
+      <li>
+        <a href="{{ n.url }}" target="_blank">{{ n.title }}</a>
+        <small> — {{ n.source }} · {{ n.published_local_str }} {{ n.local_tz }} · {{ n.country|upper }}</small>
+        <div>{{ n.summary }}</div>
+      </li>
+    {% endfor %}
+  </ul>
+</body>
+</html>
