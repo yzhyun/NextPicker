@@ -1,0 +1,1 @@
+# NextPicker News Application Package

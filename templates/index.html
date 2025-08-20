@@ -1,38 +1,129 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NextPicker News</title>
   <link rel="stylesheet" href="/static/style.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-  <h1>Recent News ({{ summary.total }})</h1>
-  <p>US: {{ summary.us }} / KR: {{ summary.kr }}</p>
-  <p>
-    US Range: {{ summary.range_us }}<br/>
-    KR Range: {{ summary.range_kr }}
-  </p>
+  <div class="container">
+    <header class="header">
+      <h1><i class="fas fa-newspaper"></i> NextPicker News</h1>
+      <div class="summary-stats">
+        <div class="stat">
+          <span class="stat-number">{{ summary.total }}</span>
+          <span class="stat-label">Total</span>
+        </div>
+        <div class="stat">
+          <span class="stat-number">{{ summary.us }}</span>
+          <span class="stat-label">US</span>
+        </div>
+        <div class="stat">
+          <span class="stat-number">{{ summary.kr }}</span>
+          <span class="stat-label">KR</span>
+        </div>
+      </div>
+    </header>
 
-  <h2>US News</h2>
-  <ul>
-    {% for n in news_us %}
-      <li>
-        <a href="{{ n.url }}" target="_blank">{{ n.title }}</a>
-        <small> — {{ n.source }} · {{ n.published_local_str }} {{ n.local_tz }} · {{ n.country|upper }}</small>
-        <div>{{ n.summary }}</div>
-      </li>
-    {% endfor %}
-  </ul>
+    <div class="controls">
+      <div class="date-ranges">
+        <div class="range-item">
+          <i class="fas fa-globe-americas"></i>
+          <span>{{ summary.range_us }}</span>
+        </div>
+        <div class="range-item">
+          <i class="fas fa-globe-asia"></i>
+          <span>{{ summary.range_kr }}</span>
+        </div>
+      </div>
+      <button id="refreshBtn" class="refresh-btn" onclick="refreshNews()">
+        <i class="fas fa-sync-alt"></i> Refresh
+      </button>
+    </div>
 
-  <h2>KR News</h2>
-  <ul>
-    {% for n in news_kr %}
-      <li>
-        <a href="{{ n.url }}" target="_blank">{{ n.title }}</a>
-        <small> — {{ n.source }} · {{ n.published_local_str }} {{ n.local_tz }} · {{ n.country|upper }}</small>
-        <div>{{ n.summary }}</div>
-      </li>
-    {% endfor %}
-  </ul>
+    <div class="news-container">
+      <section class="news-section">
+        <h2><i class="fas fa-flag-usa"></i> US News ({{ summary.us }})</h2>
+        <div class="news-list" id="usNews">
+          {% for n in news_us %}
+            <article class="news-item">
+              <div class="news-header">
+                <a href="{{ n.url }}" target="_blank" class="news-title">{{ n.title }}</a>
+                <div class="news-meta">
+                  <span class="source">{{ n.source }}</span>
+                  <span class="time">{{ n.published_local_str }} {{ n.local_tz }}</span>
+                  <span class="country-badge us">{{ n.country|upper }}</span>
+                </div>
+              </div>
+              {% if n.summary %}
+                <p class="news-summary">{{ n.summary[:200] }}{% if n.summary|length > 200 %}...{% endif %}</p>
+              {% endif %}
+            </article>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="news-section">
+        <h2><i class="fas fa-flag"></i> KR News ({{ summary.kr }})</h2>
+        <div class="news-list" id="krNews">
+          {% for n in news_kr %}
+            <article class="news-item">
+              <div class="news-header">
+                <a href="{{ n.url }}" target="_blank" class="news-title">{{ n.title }}</a>
+                <div class="news-meta">
+                  <span class="source">{{ n.source }}</span>
+                  <span class="time">{{ n.published_local_str }} {{ n.local_tz }}</span>
+                  <span class="country-badge kr">{{ n.country|upper }}</span>
+                </div>
+              </div>
+              {% if n.summary %}
+                <p class="news-summary">{{ n.summary[:200] }}{% if n.summary|length > 200 %}...{% endif %}</p>
+              {% endif %}
+            </article>
+          {% endfor %}
+        </div>
+      </section>
+    </div>
+
+    <div id="loading" class="loading hidden">
+      <div class="spinner"></div>
+      <p>Loading fresh news...</p>
+    </div>
+  </div>
+
+  <script>
+    function refreshNews() {
+      const loading = document.getElementById('loading');
+      const refreshBtn = document.getElementById('refreshBtn');
+      
+      loading.classList.remove('hidden');
+      refreshBtn.disabled = true;
+      refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+      
+      fetch('/api/refresh', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+          setTimeout(() => {
+            window.location.reload();
+          }, 2000);
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          loading.classList.add('hidden');
+          refreshBtn.disabled = false;
+          refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+        });
+    }
+
+    // 자동 새로고침 (5분마다)
+    setInterval(() => {
+      const refreshBtn = document.getElementById('refreshBtn');
+      if (!refreshBtn.disabled) {
+        refreshNews();
+      }
+    }, 300000);
+  </script>
 </body>
 </html>
