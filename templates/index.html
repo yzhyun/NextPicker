@@ -138,13 +138,7 @@
         });
     }
 
-    // 자동 새로고침 (5분마다)
-    setInterval(() => {
-      const refreshBtn = document.getElementById('refreshBtn');
-      if (!refreshBtn.disabled) {
-        refreshNews();
-      }
-    }, 300000);
+
     
     function showAnalysis() {
       const analysisBtn = document.getElementById('analysisBtn');
