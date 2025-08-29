@@ -36,3 +36,4 @@ media/
 # GitHub Actions / Workflows
 .github/workflows/daily-news-collection.yml
 .github/workflows/slack-notification.yml
+news.db
