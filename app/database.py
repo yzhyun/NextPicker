@@ -1,4 +1,4 @@
-# app/database.py
+아# app/database.py
 import os
 import logging
 from sqlalchemy import create_engine, Column, String, DateTime, Text, Integer
@@ -23,12 +23,13 @@ if not DATABASE_URL:
 else:
     logger.info("Using Neon PostgreSQL database")
 
-# 엔진 생성
+# 엔진 생성 (시간대 설정 추가)
 engine = create_engine(
     DATABASE_URL,
     echo=False,  # SQL 로그 비활성화
     pool_pre_ping=True,  # 연결 상태 확인
     pool_recycle=300,  # 5분마다 연결 재생성
+    connect_args={"options": "-c timezone=Asia/Seoul"} if DATABASE_URL and "postgresql" in DATABASE_URL else {}
 )
 
 # 세션 팩토리
