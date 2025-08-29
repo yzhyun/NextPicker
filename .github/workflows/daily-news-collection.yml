@@ -3,7 +3,7 @@ name: Daily News Collection
 on:
   schedule:
     # 매일 오전 8시 (UTC 23:00, 한국 시간 8:00)
-    - cron: '50 22 * * *'
+    - cron: '0 23 * * *'
   workflow_dispatch: # 수동 실행 가능
 
 jobs:
@@ -24,10 +24,77 @@ jobs:
         pip install requests feedparser python-dateutil
         
     - name: Collect news from Vercel API
+      id: collect_news
       run: |
         echo "Starting daily news collection..."
-        curl -X POST https://lumina-next-picker.vercel.app/api/refresh
+        response=$(curl -s -X POST https://lumina-next-picker.vercel.app/api/refresh)
         echo "News collection completed!"
+        echo "response=$response" >> $GITHUB_OUTPUT
+        
+    - name: Parse news results
+      id: parse_results
+      run: |
+        response='${{ steps.collect_news.outputs.response }}'
+        echo "Raw response: $response"
+        
+        # JSON에서 결과 추출
+        if echo "$response" | grep -q '"result"'; then
+          us_count=$(echo "$response" | grep -o '"US":[0-9]*' | grep -o '[0-9]*')
+          kr_count=$(echo "$response" | grep -o '"KR":[0-9]*' | grep -o '[0-9]*')
+          total=$((us_count + kr_count))
+          
+          echo "us_count=$us_count" >> $GITHUB_OUTPUT
+          echo "kr_count=$kr_count" >> $GITHUB_OUTPUT
+          echo "total=$total" >> $GITHUB_OUTPUT
+        else
+          echo "us_count=0" >> $GITHUB_OUTPUT
+          echo "kr_count=0" >> $GITHUB_OUTPUT
+          echo "total=0" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Send Slack notification
+      if: always()
+      run: |
+        # Slack 봇 토큰 (GitHub Secrets에서 가져오기)
+        SLACK_BOT_TOKEN="${{ secrets.SLACK_BOT_TOKEN }}"
+        SLACK_CHANNELS="${{ secrets.SLACK_CHANNELS }}"
+        
+        if [ -n "$SLACK_BOT_TOKEN" ] && [ -n "$SLACK_CHANNELS" ]; then
+          # 현재 시간 (한국 시간)
+          KST_TIME=$(date -d '+9 hours' '+%Y-%m-%d %H:%M:%S KST')
+          
+          # 메시지 구성
+          if [ "${{ job.status }}" == "success" ]; then
+            MESSAGE="📰 *일일 뉴스 수집 완료!*\n"
+            MESSAGE+="⏰ 시간: $KST_TIME\n"
+            MESSAGE+="🇺🇸 미국 뉴스: ${{ steps.parse_results.outputs.us_count }}개\n"
+            MESSAGE+="🇰🇷 한국 뉴스: ${{ steps.parse_results.outputs.kr_count }}개\n"
+            MESSAGE+="📊 총 ${{ steps.parse_results.outputs.total }}개 기사 수집\n"
+            MESSAGE+="🔗 <https://lumina-next-picker.vercel.app/news|뉴스 확인하기>"
+          else
+            MESSAGE="❌ *뉴스 수집 실패*\n"
+            MESSAGE+="⏰ 시간: $KST_TIME\n"
+            MESSAGE+="🔗 <https://lumina-next-picker.vercel.app/news|뉴스 확인하기>"
+          fi
+          
+          # 여러 채널에 메시지 전송
+          IFS=',' read -ra CHANNELS <<< "$SLACK_CHANNELS"
+          for channel in "${CHANNELS[@]}"; do
+            # 채널명 앞뒤 공백 제거
+            channel=$(echo "$channel" | xargs)
+            
+            echo "Sending message to channel: $channel"
+            
+            # Slack API로 메시지 전송
+            curl -X POST \
+              -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+              -H "Content-type: application/json" \
+              --data "{\"channel\":\"$channel\",\"text\":\"$MESSAGE\"}" \
+              "https://slack.com/api/chat.postMessage"
+          done
+        else
+          echo "Slack bot token or channels not configured"
+        fi
         
     - name: Notify completion
       run: |
