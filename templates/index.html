@@ -53,6 +53,9 @@
                 <a href="{{ n.url }}" target="_blank" class="news-title">{{ n.title }}</a>
                 <div class="news-meta">
                   <span class="source">{{ n.source }}</span>
+                  {% if n.section %}
+                    <span class="section-badge {{ n.section }}">{{ n.section|title }}</span>
+                  {% endif %}
                   <span class="time">{{ n.published_local_str }} {{ n.local_tz }}</span>
                   <span class="country-badge us">{{ n.country|upper }}</span>
                 </div>
@@ -74,6 +77,9 @@
                 <a href="{{ n.url }}" target="_blank" class="news-title">{{ n.title }}</a>
                 <div class="news-meta">
                   <span class="source">{{ n.source }}</span>
+                  {% if n.section %}
+                    <span class="section-badge {{ n.section }}">{{ n.section|title }}</span>
+                  {% endif %}
                   <span class="time">{{ n.published_local_str }} {{ n.local_tz }}</span>
                   <span class="country-badge kr">{{ n.country|upper }}</span>
                 </div>

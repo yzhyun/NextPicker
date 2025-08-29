@@ -217,6 +217,48 @@ body {
   color: #4a5568;
 }
 
+.section-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: white;
+}
+
+.section-badge.politics {
+  background: #e53e3e;
+}
+
+.section-badge.business {
+  background: #38a169;
+}
+
+.section-badge.technology {
+  background: #3182ce;
+}
+
+.section-badge.sports {
+  background: #d69e2e;
+}
+
+.section-badge.entertainment {
+  background: #805ad5;
+}
+
+.section-badge.health {
+  background: #dd6b20;
+}
+
+.section-badge.science {
+  background: #319795;
+}
+
+.section-badge.general {
+  background: #718096;
+}
+
 .time {
   color: #718096;
 }
