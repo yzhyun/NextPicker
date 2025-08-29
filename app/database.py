@@ -8,12 +8,12 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-# 환경 변수에서 DB URL 가져오기 (Vercel Postgres 우선)
-DATABASE_URL = os.getenv("POSTGRES_URL") or os.getenv("DATABASE_URL")
+# 환경 변수에서 DB URL 가져오기 (Neon PostgreSQL 우선)
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Vercel Postgres URL 처리
+# Neon PostgreSQL URL 처리
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
-    # Heroku/Vercel 스타일 URL을 SQLAlchemy 형식으로 변환
+    # Neon 스타일 URL을 SQLAlchemy 형식으로 변환
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 # 로컬 개발용 SQLite (DATABASE_URL이 없을 때)
@@ -21,7 +21,7 @@ if not DATABASE_URL:
     DATABASE_URL = "sqlite:///./news.db"
     logger.info("Using local SQLite database")
 else:
-    logger.info("Using Vercel Postgres database")
+    logger.info("Using Neon PostgreSQL database")
 
 # 엔진 생성
 engine = create_engine(
