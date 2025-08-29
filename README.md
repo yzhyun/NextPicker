@@ -1,4 +1,8 @@
-# NextPicker News
+# NextPicker
+
+News aggregation service with Slack notifications.
+
+<!-- Trigger Vercel redeploy -->
 
 간단하고 효율적인 뉴스 수집 및 조회 서비스입니다.
 
