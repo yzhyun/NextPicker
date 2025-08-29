@@ -172,10 +172,10 @@ def get_news_by_section(section: str, country: str = None, days: int = 3, limit:
     """특정 섹션의 뉴스를 가져옵니다."""
     db = next(get_db())
     try:
-        # SQL에서 한국 시각으로 필터링
+        # PostgreSQL에서 한국 시각으로 필터링
         query = db.query(NewsArticle).filter(
             NewsArticle.section == section,
-            func.datetime(NewsArticle.published, '+9 hours') >= func.datetime('now', f'-{days} days', '+9 hours')
+            NewsArticle.published >= func.now() - func.interval(f'{days} days')
         )
         
         if country:
@@ -202,10 +202,10 @@ def get_recent_news(country: str, days: int = 3, limit: int = 50) -> List[Dict[s
     """데이터베이스에서 최근 뉴스를 가져옵니다."""
     db = next(get_db())
     try:
-        # SQL에서 한국 시각으로 필터링
+        # PostgreSQL에서 한국 시각으로 필터링
         articles = db.query(NewsArticle).filter(
             NewsArticle.country == country.upper(),
-            func.datetime(NewsArticle.published, '+9 hours') >= func.datetime('now', f'-{days} days', '+9 hours')
+            NewsArticle.published >= func.now() - func.interval(f'{days} days')
         ).order_by(NewsArticle.published.desc()).limit(limit).all()
         
         return [
