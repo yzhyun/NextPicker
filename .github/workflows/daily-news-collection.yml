@@ -1,0 +1,35 @@
+name: Daily News Collection
+
+on:
+  schedule:
+    # 매일 오전 8시 (UTC 23:00, 한국 시간 8:00)
+    - cron: '0 23 * * *'
+  workflow_dispatch: # 수동 실행 가능
+
+jobs:
+  collect-news:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        pip install requests feedparser python-dateutil
+        
+    - name: Collect news from Vercel API
+      run: |
+        echo "Starting daily news collection..."
+        curl -X POST https://lumina-next-picker.vercel.app/api/refresh
+        echo "News collection completed!"
+        
+    - name: Notify completion
+      run: |
+        echo "✅ Daily news collection completed at $(date)"
+        echo "📰 Check the latest news at: https://lumina-next-picker.vercel.app/news"
