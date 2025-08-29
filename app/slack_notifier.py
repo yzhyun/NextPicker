@@ -10,13 +10,14 @@ class SlackNotifier:
     """슬랙 알림을 보내는 클래스"""
     
     def __init__(self):
-        self.webhook_url = os.getenv("SLACK_WEBHOOK_URL")
+        self.bot_token = os.getenv("SLACK_BOT_TOKEN")
+        self.channels = os.getenv("SLACK_CHANNELS", "#general").split(",")
         self.enabled = os.getenv("ENABLE_SLACK_NOTIFICATIONS", "false").lower() == "true"
         
         if not self.enabled:
             logger.info("Slack notifications are disabled")
-        elif not self.webhook_url:
-            logger.warning("SLACK_WEBHOOK_URL not set, notifications disabled")
+        elif not self.bot_token:
+            logger.warning("SLACK_BOT_TOKEN not set, notifications disabled")
             self.enabled = False
     
     def send_message(self, message: str, channel: Optional[str] = None) -> bool:
@@ -34,14 +35,37 @@ class SlackNotifier:
             return False
             
         try:
-            payload = {"text": message}
-            if channel:
-                payload["channel"] = channel
-                
-            response = requests.post(self.webhook_url, json=payload, timeout=10)
-            response.raise_for_status()
+            # 여러 채널에 메시지 전송
+            target_channels = [channel] if channel else self.channels
             
-            logger.info(f"Slack message sent successfully: {message[:50]}...")
+            for target_channel in target_channels:
+                target_channel = target_channel.strip()
+                
+                payload = {
+                    "channel": target_channel,
+                    "text": message
+                }
+                
+                headers = {
+                    "Authorization": f"Bearer {self.bot_token}",
+                    "Content-type": "application/json"
+                }
+                
+                response = requests.post(
+                    "https://slack.com/api/chat.postMessage",
+                    json=payload,
+                    headers=headers,
+                    timeout=10
+                )
+                response.raise_for_status()
+                
+                result = response.json()
+                if not result.get("ok"):
+                    logger.error(f"Slack API error: {result.get('error')}")
+                    return False
+                
+                logger.info(f"Slack message sent to {target_channel}: {message[:50]}...")
+            
             return True
             
         except Exception as e:
@@ -66,6 +90,24 @@ class SlackNotifier:
     def notify_feed_refresh(self, success_count: int, total_count: int) -> None:
         """피드 새로고침 완료 시 알림"""
         message = f"🔄 피드 새로고침 완료\n• 성공: {success_count}/{total_count}"
+        self.send_message(message)
+    
+    def notify_daily_collection(self, results: Dict[str, int]) -> None:
+        """일일 뉴스 수집 완료 시 알림"""
+        total_news = sum(results.values())
+        message = f"📰 *일일 뉴스 수집 완료!*\n"
+        
+        for country, count in results.items():
+            message += f"• {country}: {count}개\n"
+        
+        message += f"• 총 {total_news}개 기사 수집\n"
+        message += f"🔗 <https://lumina-next-picker.vercel.app/news|뉴스 확인하기>"
+        
+        self.send_message(message)
+    
+    def notify_collection_start(self) -> None:
+        """뉴스 수집 시작 시 알림"""
+        message = "🕗 일일 뉴스 수집을 시작합니다..."
         self.send_message(message)
 
 # 전역 인스턴스
