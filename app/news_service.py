@@ -55,15 +55,11 @@ def fetch_rss_feed(feed_url: str, country: str = None) -> List[Dict[str, Any]]:
         articles = []
         
         for entry in feed.entries:
-            # 발행일 파싱 (국가별 시간 변환)
+            # 발행일 파싱 (모든 뉴스는 UTC로 제공되므로 한국 시각으로 변환)
             published = getattr(entry, 'published_parsed', None)
             if published:
-                if country == 'US':
-                    # 미국 뉴스: UTC를 한국 시각으로 변환
-                    published = datetime(*published[:6]).replace(tzinfo=timezone.utc).astimezone(timezone(timedelta(hours=9)))
-                else:
-                    # 한국 뉴스: 이미 한국 시각이므로 그대로 사용
-                    published = datetime(*published[:6])
+                # 모든 뉴스: UTC를 한국 시각으로 변환
+                published = datetime(*published[:6]).replace(tzinfo=timezone.utc).astimezone(timezone(timedelta(hours=9)))
             else:
                 published = datetime.now(timezone(timedelta(hours=9)))
             
