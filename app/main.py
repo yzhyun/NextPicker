@@ -206,27 +206,16 @@ async def send_daily_slack_notification():
         
         db = SessionLocal()
         try:
-            # 미국 뉴스 최신 10개
-            us_articles = db.query(NewsArticle).filter(
-                NewsArticle.country == 'US',
-                NewsArticle.created_at >= cutoff_date
-            ).order_by(NewsArticle.created_at.desc()).limit(10).all()
-            
-            # 한국 뉴스 최신 10개
+            # 한국 뉴스 최신 20개만
             kr_articles = db.query(NewsArticle).filter(
                 NewsArticle.country == 'KR',
                 NewsArticle.created_at >= cutoff_date
-            ).order_by(NewsArticle.created_at.desc()).limit(10).all()
+            ).order_by(NewsArticle.created_at.desc()).limit(20).all()
             
             # Slack 메시지 구성
             message = "📰 *일일 뉴스 수집 완료!*\n\n"
             
-            # 미국 뉴스
-            message += "🇺🇸 *미국 뉴스 (최신 10개)*\n"
-            for i, article in enumerate(us_articles, 1):
-                message += f"{i}. <{article.url}|{article.title[:50]}...>\n"
-            
-            message += "\n🇰🇷 *한국 뉴스 (최신 10개)*\n"
+            message += "🇰🇷 *한국 뉴스 (최신 20개)*\n"
             for i, article in enumerate(kr_articles, 1):
                 message += f"{i}. <{article.url}|{article.title[:50]}...>\n"
             
@@ -239,9 +228,8 @@ async def send_daily_slack_notification():
                 "message": "일일 뉴스 알림이 전송되었습니다.",
                 "status": "sent",
                 "result": {
-                    "US": len(us_articles),
                     "KR": len(kr_articles),
-                    "total": len(us_articles) + len(kr_articles)
+                    "total": len(kr_articles)
                 }
             }
             
