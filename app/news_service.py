@@ -1,7 +1,7 @@
 # app/news_service.py
 import hashlib
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any
 from sqlalchemy.orm import Session
 import feedparser
@@ -59,7 +59,7 @@ def fetch_rss_feed(feed_url: str) -> List[Dict[str, Any]]:
             if published:
                 published = datetime(*published[:6])
             else:
-                published = datetime.utcnow()
+                published = datetime.now(timezone(timedelta(hours=9)))
             
             # 요약 추출
             summary = ""
@@ -156,7 +156,7 @@ def collect_news(country: str, days: int = 3) -> List[Dict[str, Any]]:
         all_articles.extend(articles)
     
     # 최근 N일 내 기사만 필터링
-    cutoff_date = datetime.utcnow() - timedelta(days=days)
+    cutoff_date = datetime.now(timezone(timedelta(hours=9))) - timedelta(days=days)
     recent_articles = [
         article for article in all_articles 
         if article['published'] >= cutoff_date
@@ -173,7 +173,7 @@ def collect_news(country: str, days: int = 3) -> List[Dict[str, Any]]:
 
 def get_news_by_section(section: str, country: str = None, days: int = 3, limit: int = 50) -> List[Dict[str, Any]]:
     """특정 섹션의 뉴스를 가져옵니다."""
-    cutoff_date = datetime.utcnow() - timedelta(days=days)
+    cutoff_date = datetime.now(timezone(timedelta(hours=9))) - timedelta(days=days)
     
     db = next(get_db())
     try:
@@ -204,7 +204,7 @@ def get_news_by_section(section: str, country: str = None, days: int = 3, limit:
 
 def get_recent_news(country: str, days: int = 3, limit: int = 50) -> List[Dict[str, Any]]:
     """데이터베이스에서 최근 뉴스를 가져옵니다."""
-    cutoff_date = datetime.utcnow() - timedelta(days=days)
+    cutoff_date = datetime.now(timezone(timedelta(hours=9))) - timedelta(days=days)
     
     db = next(get_db())
     try:

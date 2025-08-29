@@ -4,7 +4,7 @@ import logging
 from sqlalchemy import create_engine, Column, String, DateTime, Text, Integer
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ class NewsArticle(Base):
     summary = Column(Text)
     section = Column(String(50))  # 섹션 분류 (politics, business, technology, etc.)
     country = Column(String(2), nullable=False)  # 'US' 또는 'KR'
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone(timedelta(hours=9))))
     
     def __repr__(self):
         return f"<NewsArticle(title='{self.title[:30]}...', country='{self.country}')>"
