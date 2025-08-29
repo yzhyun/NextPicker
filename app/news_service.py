@@ -4,6 +4,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 import feedparser
 import requests
 from bs4 import BeautifulSoup
@@ -155,12 +156,8 @@ def collect_news(country: str, days: int = 3) -> List[Dict[str, Any]]:
         articles = fetch_rss_feed(feed_url)
         all_articles.extend(articles)
     
-    # 최근 N일 내 기사만 필터링
-    cutoff_date = datetime.now(timezone(timedelta(hours=9))) - timedelta(days=days)
-    recent_articles = [
-        article for article in all_articles 
-        if article['published'] >= cutoff_date
-    ]
+    # 최근 N일 내 기사만 필터링 (Python에서 필터링 제거, SQL에서 처리)
+    recent_articles = all_articles
     
     # 데이터베이스에 저장
     db = next(get_db())
@@ -173,13 +170,12 @@ def collect_news(country: str, days: int = 3) -> List[Dict[str, Any]]:
 
 def get_news_by_section(section: str, country: str = None, days: int = 3, limit: int = 50) -> List[Dict[str, Any]]:
     """특정 섹션의 뉴스를 가져옵니다."""
-    cutoff_date = datetime.now(timezone(timedelta(hours=9))) - timedelta(days=days)
-    
     db = next(get_db())
     try:
+        # SQL에서 한국 시각으로 필터링
         query = db.query(NewsArticle).filter(
             NewsArticle.section == section,
-            NewsArticle.published >= cutoff_date
+            func.datetime(NewsArticle.published, '+9 hours') >= func.datetime('now', f'-{days} days', '+9 hours')
         )
         
         if country:
@@ -204,13 +200,12 @@ def get_news_by_section(section: str, country: str = None, days: int = 3, limit:
 
 def get_recent_news(country: str, days: int = 3, limit: int = 50) -> List[Dict[str, Any]]:
     """데이터베이스에서 최근 뉴스를 가져옵니다."""
-    cutoff_date = datetime.now(timezone(timedelta(hours=9))) - timedelta(days=days)
-    
     db = next(get_db())
     try:
+        # SQL에서 한국 시각으로 필터링
         articles = db.query(NewsArticle).filter(
             NewsArticle.country == country.upper(),
-            NewsArticle.published >= cutoff_date
+            func.datetime(NewsArticle.published, '+9 hours') >= func.datetime('now', f'-{days} days', '+9 hours')
         ).order_by(NewsArticle.published.desc()).limit(limit).all()
         
         return [
