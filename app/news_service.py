@@ -176,7 +176,7 @@ def get_news_by_section(section: str, country: str = None, days: int = 3, limit:
         # PostgreSQL에서 한국 시각으로 필터링
         query = db.query(NewsArticle).filter(
             NewsArticle.section == section,
-            NewsArticle.published >= text(f"now() - interval '{days} days'")
+            text(f"published >= now() - interval '{days} days'")
         )
         
         if country:
@@ -206,7 +206,7 @@ def get_recent_news(country: str, days: int = 3, limit: int = 50) -> List[Dict[s
         # PostgreSQL에서 한국 시각으로 필터링
         articles = db.query(NewsArticle).filter(
             NewsArticle.country == country.upper(),
-            NewsArticle.published >= text(f"now() - interval '{days} days'")
+            text(f"published >= now() - interval '{days} days'")
         ).order_by(NewsArticle.published.desc()).limit(limit).all()
         
         return [
