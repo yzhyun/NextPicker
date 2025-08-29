@@ -38,6 +38,16 @@
           <span>{{ summary.range_kr }}</span>
         </div>
       </div>
+      <div class="update-info">
+        <div class="last-update">
+          <i class="fas fa-clock"></i>
+          <span>최종 업데이트: {{ summary.last_update }}</span>
+        </div>
+        <div class="next-update">
+          <i class="fas fa-calendar-alt"></i>
+          <span>다음 수집: 매일 오전 8시 (KST)</span>
+        </div>
+      </div>
       <button id="refreshBtn" class="refresh-btn" onclick="refreshNews()">
         <i class="fas fa-sync-alt"></i> Refresh
       </button>

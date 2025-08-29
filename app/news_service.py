@@ -258,12 +258,24 @@ def refresh_all_feeds() -> Dict[str, int]:
 
 def build_summary(us_news: List[Dict], kr_news: List[Dict], days_us: int = 3, days_kr: int = 3) -> Dict[str, Any]:
     """뉴스 요약 정보를 생성합니다."""
+    # 최종 업데이트 시간 계산 (가장 최근 created_at)
+    all_news = us_news + kr_news
+    last_update = "알 수 없음"
+    
+    if all_news:
+        # created_at이 있는 뉴스들 중 가장 최근 시간 찾기
+        valid_news = [n for n in all_news if n.get('created_at')]
+        if valid_news:
+            latest_news = max(valid_news, key=lambda x: x['created_at'])
+            last_update = latest_news['created_at'].strftime("%Y-%m-%d %H:%M:%S KST")
+    
     return {
         'total': len(us_news) + len(kr_news),
         'us': len(us_news),
         'kr': len(kr_news),
         'range_us': f"최근 {days_us}일",
-        'range_kr': f"최근 {days_kr}일"
+        'range_kr': f"최근 {days_kr}일",
+        'last_update': last_update
     }
 
 def classify_news_section(title: str, summary: str = "") -> str:
