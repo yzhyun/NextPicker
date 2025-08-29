@@ -48,18 +48,22 @@ def extract_summary(content: str) -> str:
     except:
         return content[:200] + "..." if len(content) > 200 else content
 
-def fetch_rss_feed(feed_url: str) -> List[Dict[str, Any]]:
+def fetch_rss_feed(feed_url: str, country: str = None) -> List[Dict[str, Any]]:
     """RSS 피드에서 뉴스를 가져옵니다."""
     try:
         feed = feedparser.parse(feed_url)
         articles = []
         
         for entry in feed.entries:
-            # 발행일 파싱 (한국 시각으로 변환)
+            # 발행일 파싱 (국가별 시간 변환)
             published = getattr(entry, 'published_parsed', None)
             if published:
-                # UTC 시간을 한국 시각으로 변환
-                published = datetime(*published[:6]).replace(tzinfo=timezone.utc).astimezone(timezone(timedelta(hours=9)))
+                if country == 'US':
+                    # 미국 뉴스: UTC를 한국 시각으로 변환
+                    published = datetime(*published[:6]).replace(tzinfo=timezone.utc).astimezone(timezone(timedelta(hours=9)))
+                else:
+                    # 한국 뉴스: 이미 한국 시각이므로 그대로 사용
+                    published = datetime(*published[:6])
             else:
                 published = datetime.now(timezone(timedelta(hours=9)))
             
@@ -154,7 +158,7 @@ def collect_news(country: str, days: int = 3) -> List[Dict[str, Any]]:
     
     # 각 피드에서 뉴스 가져오기
     for feed_url in feeds:
-        articles = fetch_rss_feed(feed_url)
+        articles = fetch_rss_feed(feed_url, country)
         all_articles.extend(articles)
     
     # 최근 N일 내 기사만 필터링 (Python에서 필터링 제거, SQL에서 처리)
