@@ -194,6 +194,65 @@ async def get_status():
         "message": "NextPicker News is running"
     }
 
+@app.post("/api/slack/daily-notification")
+async def send_daily_slack_notification():
+    """일일 뉴스 수집 결과를 Slack으로 전송합니다"""
+    try:
+        from datetime import datetime, timedelta
+        from app.database import SessionLocal, NewsArticle
+        
+        # 오늘 날짜 기준으로 최근 1일간 뉴스 가져오기
+        cutoff_date = datetime.utcnow() - timedelta(days=1)
+        
+        db = SessionLocal()
+        try:
+            # 미국 뉴스 최신 10개
+            us_articles = db.query(NewsArticle).filter(
+                NewsArticle.country == 'US',
+                NewsArticle.created_at >= cutoff_date
+            ).order_by(NewsArticle.created_at.desc()).limit(10).all()
+            
+            # 한국 뉴스 최신 10개
+            kr_articles = db.query(NewsArticle).filter(
+                NewsArticle.country == 'KR',
+                NewsArticle.created_at >= cutoff_date
+            ).order_by(NewsArticle.created_at.desc()).limit(10).all()
+            
+            # Slack 메시지 구성
+            message = "📰 *일일 뉴스 수집 완료!*\n\n"
+            
+            # 미국 뉴스
+            message += "🇺🇸 *미국 뉴스 (최신 10개)*\n"
+            for i, article in enumerate(us_articles, 1):
+                message += f"{i}. <{article.url}|{article.title[:50]}...>\n"
+            
+            message += "\n🇰🇷 *한국 뉴스 (최신 10개)*\n"
+            for i, article in enumerate(kr_articles, 1):
+                message += f"{i}. <{article.url}|{article.title[:50]}...>\n"
+            
+            message += f"\n🔗 <https://lumina-next-picker.vercel.app/news|전체 뉴스 보기>"
+            
+            # Slack 알림 전송
+            slack.send_message(message)
+            
+            return {
+                "message": "일일 뉴스 알림이 전송되었습니다.",
+                "status": "sent",
+                "result": {
+                    "US": len(us_articles),
+                    "KR": len(kr_articles),
+                    "total": len(us_articles) + len(kr_articles)
+                }
+            }
+            
+        finally:
+            db.close()
+            
+    except Exception as e:
+        logger.error(f"Daily notification error: {e}")
+        slack.notify_error(str(e), "일일 뉴스 알림 전송 실패")
+        return {"error": str(e)}
+
 # 리다이렉트
 @app.get("/")
 async def root_redirect():
