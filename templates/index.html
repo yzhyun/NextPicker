@@ -155,6 +155,14 @@
       fetch('/api/analysis/us-news')
         .then(response => response.json())
         .then(data => {
+          // 데이터 유효성 검사
+          if (!data || !data.data || !Array.isArray(data.data)) {
+            console.error('Invalid data format:', data);
+            analysisBtn.disabled = false;
+            analysisBtn.innerHTML = '<i class="fas fa-chart-bar"></i> AI 분석용 데이터';
+            return;
+          }
+          
           // TSV 데이터를 문자열로 변환
           const tsvText = data.data.join('\n');
           
