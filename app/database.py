@@ -1,4 +1,4 @@
-아# app/database.py
+# app/database.py
 import os
 import logging
 from sqlalchemy import create_engine, Column, String, DateTime, Text, Integer
