@@ -203,11 +203,24 @@ def get_recent_news(country: str, days: int = 3, limit: int = 50) -> List[Dict[s
     """데이터베이스에서 최근 뉴스를 가져옵니다."""
     db = next(get_db())
     try:
-        # PostgreSQL에서 한국 시각으로 필터링
-        articles = db.query(NewsArticle).filter(
-            NewsArticle.country == country.upper(),
-            text(f"published >= now() - interval '{days} days'")
-        ).order_by(NewsArticle.published.desc()).limit(limit).all()
+        # 데이터베이스 타입에 따라 다른 쿼리 사용
+        import os
+        database_url = os.getenv("DATABASE_URL", "")
+        
+        if database_url and "postgresql" in database_url:
+            # PostgreSQL용 쿼리
+            articles = db.query(NewsArticle).filter(
+                NewsArticle.country == country.upper(),
+                text(f"published >= now() - interval '{days} days'")
+            ).order_by(NewsArticle.published.desc()).limit(limit).all()
+        else:
+            # SQLite용 쿼리
+            from datetime import datetime, timedelta
+            cutoff_date = datetime.now() - timedelta(days=days)
+            articles = db.query(NewsArticle).filter(
+                NewsArticle.country == country.upper(),
+                NewsArticle.published >= cutoff_date
+            ).order_by(NewsArticle.published.desc()).limit(limit).all()
         
         return [
             {
@@ -217,7 +230,8 @@ def get_recent_news(country: str, days: int = 3, limit: int = 50) -> List[Dict[s
                 'published': article.published,
                 'summary': article.summary,
                 'section': article.section,
-                'country': article.country
+                'country': article.country,
+                'created_at': article.created_at # Ensure created_at is included for summary calculation
             }
             for article in articles
         ]

@@ -175,6 +175,52 @@ async def api_news_by_section(section: str, country: str = None, days: int = 1, 
         logger.error(f"Section API error: {e}")
         return {"error": str(e)}
 
+@app.get("/api/analysis/us-news")
+async def api_analysis_us_news(days: int = 1, limit: int = 50):
+    """AI 분석용 미국 뉴스 데이터를 TSV 형식으로 반환합니다"""
+    try:
+        from sqlalchemy import text
+        from app.database import get_db
+        
+        db = next(get_db())
+        try:
+            # PostgreSQL용 쿼리 (배포 환경용)
+            query = text(f"""
+                SELECT 
+                    title || E'\t' ||
+                    url || E'\t' ||
+                    source || E'\t' ||
+                    published || E'\t' ||
+                    COALESCE(summary, '') || E'\t' ||
+                    COALESCE(section, 'general') || E'\t' ||
+                    country AS tsv_row
+                FROM news_articles 
+                WHERE country = 'US' 
+                AND published >= now() - interval '{days} days'
+                ORDER BY published DESC 
+                LIMIT {limit}
+            """)
+            
+            result = db.execute(query)
+            rows = result.fetchall()
+            
+            # TSV 데이터 생성
+            tsv_data = []
+            for row in rows:
+                tsv_data.append(row[0])  # tsv_row 컬럼
+            
+            return {
+                "count": len(tsv_data),
+                "days": days,
+                "format": "tsv",
+                "data": tsv_data
+            }
+        finally:
+            db.close()
+    except Exception as e:
+        logger.error(f"Analysis API error: {e}")
+        return {"error": str(e)}
+
 @app.get("/api/feeds")
 async def api_feeds():
     """설정된 RSS 피드 정보를 반환합니다"""

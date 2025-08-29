@@ -137,7 +137,7 @@ body {
   width: 16px;
 }
 
-.refresh-btn {
+.refresh-btn, .analysis-btn {
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
   border: none;
@@ -150,6 +150,10 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.analysis-btn {
+  background: linear-gradient(135deg, #f093fb, #f5576c);
 }
 
 .refresh-btn:hover:not(:disabled) {
@@ -425,4 +429,64 @@ body {
   .news-title {
     font-size: 1rem;
   }
+}
+
+/* Analysis Result Styles */
+.analysis-result {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 15px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  margin-top: 20px;
+  overflow: hidden;
+}
+
+.analysis-header {
+  background: linear-gradient(135deg, #f093fb, #f5576c);
+  color: white;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.analysis-header h3 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.copy-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.copy-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.analysis-content {
+  padding: 20px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.analysis-content pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #333;
 }

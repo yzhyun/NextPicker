@@ -51,6 +51,9 @@
       <button id="refreshBtn" class="refresh-btn" onclick="refreshNews()">
         <i class="fas fa-sync-alt"></i> Refresh
       </button>
+      <button id="analysisBtn" class="analysis-btn" onclick="showAnalysis()">
+        <i class="fas fa-chart-bar"></i> AI 분석용 데이터
+      </button>
     </div>
 
     <div class="news-container">
@@ -107,6 +110,8 @@
       <div class="spinner"></div>
       <p>Loading fresh news...</p>
     </div>
+    
+
   </div>
 
   <script>
@@ -140,6 +145,50 @@
         refreshNews();
       }
     }, 300000);
+    
+    function showAnalysis() {
+      const analysisBtn = document.getElementById('analysisBtn');
+      
+      analysisBtn.disabled = true;
+      analysisBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 복사 중...';
+      
+      fetch('/api/analysis/us-news')
+        .then(response => response.json())
+        .then(data => {
+          // TSV 데이터를 문자열로 변환
+          const tsvText = data.data.join('\n');
+          
+          // 클립보드에 복사
+          navigator.clipboard.writeText(tsvText).then(() => {
+            analysisBtn.innerHTML = '<i class="fas fa-check"></i> 복사 완료!';
+            setTimeout(() => {
+              analysisBtn.disabled = false;
+              analysisBtn.innerHTML = '<i class="fas fa-chart-bar"></i> AI 분석용 데이터';
+            }, 2000);
+          }).catch(() => {
+            // 클립보드 복사 실패 시 fallback
+            const textArea = document.createElement('textarea');
+            textArea.value = tsvText;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            
+            analysisBtn.innerHTML = '<i class="fas fa-check"></i> 복사 완료!';
+            setTimeout(() => {
+              analysisBtn.disabled = false;
+              analysisBtn.innerHTML = '<i class="fas fa-chart-bar"></i> AI 분석용 데이터';
+            }, 2000);
+          });
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          analysisBtn.disabled = false;
+          analysisBtn.innerHTML = '<i class="fas fa-chart-bar"></i> AI 분석용 데이터';
+        });
+    }
+    
+
   </script>
 </body>
 </html>
