@@ -55,10 +55,11 @@ def fetch_rss_feed(feed_url: str) -> List[Dict[str, Any]]:
         articles = []
         
         for entry in feed.entries:
-            # 발행일 파싱
+            # 발행일 파싱 (한국 시각으로 변환)
             published = getattr(entry, 'published_parsed', None)
             if published:
-                published = datetime(*published[:6])
+                # UTC 시간을 한국 시각으로 변환
+                published = datetime(*published[:6]).replace(tzinfo=timezone.utc).astimezone(timezone(timedelta(hours=9)))
             else:
                 published = datetime.now(timezone(timedelta(hours=9)))
             
