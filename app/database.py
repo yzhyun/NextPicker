@@ -8,10 +8,10 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-# 환경 변수에서 DB URL 가져오기 (Vercel에서 설정)
-DATABASE_URL = os.getenv("DATABASE_URL")
+# 환경 변수에서 DB URL 가져오기 (Vercel Postgres 우선)
+DATABASE_URL = os.getenv("POSTGRES_URL") or os.getenv("DATABASE_URL")
 
-# Vercel 배포 시 Supabase PostgreSQL 사용
+# Vercel Postgres URL 처리
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     # Heroku/Vercel 스타일 URL을 SQLAlchemy 형식으로 변환
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
@@ -20,6 +20,8 @@ if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
 if not DATABASE_URL:
     DATABASE_URL = "sqlite:///./news.db"
     logger.info("Using local SQLite database")
+else:
+    logger.info("Using Vercel Postgres database")
 
 # 엔진 생성
 engine = create_engine(
