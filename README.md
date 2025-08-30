@@ -57,7 +57,9 @@ uvicorn app.main:app --reload
 | `/news/us` | 미국 뉴스만 |
 | `/news/kr` | 한국 뉴스만 |
 | `/api/news` | JSON 형태 뉴스 데이터 |
+| `/api/news/economy-politics` | 경제·정치 기사만 JSON 형태로 반환 |
 | `/api/refresh` | 뉴스 새로고침 |
+| `/api/slack/economy-politics-notification` | 경제·정치 뉴스 알림 전송 |
 | `/api/status` | 서버 상태 확인 |
 | `/health` | 헬스체크 |
 
@@ -78,6 +80,16 @@ ENABLE_SLACK_NOTIFICATIONS=true
 - 📰 **데이터 저장**: 새 뉴스가 저장될 때
 - 🔄 **피드 새로고침**: RSS 피드 업데이트 완료 시
 - ❌ **오류 발생**: 예외 발생 시
+- 💼 **경제·정치 뉴스 알림**: 매일 오전 8시 (한국/미국 경제·정치 기사 각각 20개)
+
+### 자동 알림 스케줄
+
+- **뉴스 수집**: 매일 오전 7시 50분 (KST)
+- **경제·정치 뉴스 알림**: 매일 오전 8시 (KST)
+
+경제·정치 뉴스는 다음 키워드로 필터링됩니다:
+- 한국어: 경제, 정치, 금융, 투자, 주식, 부동산, 기업, 정부, 의회, 대통령, 총리, 장관
+- 영어: economy, politics, business, finance, government, congress, senate, president, federal, market, stock, investment
 
 ## ☁️ Vercel 배포
 

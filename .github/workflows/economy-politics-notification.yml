@@ -1,0 +1,22 @@
+name: Economy Politics News Notification
+
+on:
+  schedule:
+    # 매일 오전 8시 (UTC 23:00, 한국 시간 8:00)
+    - cron: '0 23 * * *'
+  workflow_dispatch: # 수동 실행 가능
+
+jobs:
+  send-economy-politics-notification:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Send economy politics news notification
+      run: |
+        echo "Sending economy politics news notification..."
+        response=$(curl -s -X POST https://lumina-next-picker.vercel.app/api/slack/economy-politics-notification)
+        echo "Response: $response"
+        
+    - name: Notify completion
+      run: |
+        echo "✅ Economy politics news notification completed at $(date)"

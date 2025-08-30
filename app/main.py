@@ -240,11 +240,14 @@ async def get_status():
         "message": "NextPicker News is running"
     }
 
-@app.post("/api/slack/daily-notification")
-async def send_daily_slack_notification():
-    """일일 뉴스 수집 결과를 Slack으로 전송합니다"""
+
+
+@app.post("/api/slack/economy-politics-notification")
+async def send_economy_politics_notification():
+    """경제, 정치 기사로 한국과 미국 기사 각각 20개씩 Slack으로 전송합니다"""
     try:
         from datetime import datetime, timedelta
+        from sqlalchemy import or_
         from app.database import SessionLocal, NewsArticle
         
         # 오늘 날짜 기준으로 최근 1일간 뉴스 가져오기
@@ -252,18 +255,61 @@ async def send_daily_slack_notification():
         
         db = SessionLocal()
         try:
-            # 한국 뉴스 최신 20개만
+            # 경제, 정치 기사 필터링 조건
+            economy_politics_filter = or_(
+                NewsArticle.section.in_(['business', 'economy', 'politics', 'finance']),
+                NewsArticle.title.ilike('%경제%'),
+                NewsArticle.title.ilike('%정치%'),
+                NewsArticle.title.ilike('%금융%'),
+                NewsArticle.title.ilike('%투자%'),
+                NewsArticle.title.ilike('%주식%'),
+                NewsArticle.title.ilike('%부동산%'),
+                NewsArticle.title.ilike('%기업%'),
+                NewsArticle.title.ilike('%정부%'),
+                NewsArticle.title.ilike('%의회%'),
+                NewsArticle.title.ilike('%대통령%'),
+                NewsArticle.title.ilike('%총리%'),
+                NewsArticle.title.ilike('%장관%'),
+                NewsArticle.title.ilike('%economy%'),
+                NewsArticle.title.ilike('%politics%'),
+                NewsArticle.title.ilike('%business%'),
+                NewsArticle.title.ilike('%finance%'),
+                NewsArticle.title.ilike('%government%'),
+                NewsArticle.title.ilike('%congress%'),
+                NewsArticle.title.ilike('%senate%'),
+                NewsArticle.title.ilike('%president%'),
+                NewsArticle.title.ilike('%federal%'),
+                NewsArticle.title.ilike('%market%'),
+                NewsArticle.title.ilike('%stock%'),
+                NewsArticle.title.ilike('%investment%')
+            )
+            
+            # 한국 경제, 정치 기사 20개
             kr_articles = db.query(NewsArticle).filter(
                 NewsArticle.country == 'KR',
-                NewsArticle.created_at >= cutoff_date
+                NewsArticle.created_at >= cutoff_date,
+                economy_politics_filter
+            ).order_by(NewsArticle.created_at.desc()).limit(20).all()
+            
+            # 미국 경제, 정치 기사 20개
+            us_articles = db.query(NewsArticle).filter(
+                NewsArticle.country == 'US',
+                NewsArticle.created_at >= cutoff_date,
+                economy_politics_filter
             ).order_by(NewsArticle.created_at.desc()).limit(20).all()
             
             # Slack 메시지 구성
-            message = "📰 *일일 뉴스 수집 완료!*\n\n"
+            message = "📊 *경제·정치 뉴스 요약*\n\n"
             
-            message += "🇰🇷 *한국 뉴스 (최신 20개)*\n"
+            message += f"🇰🇷 *한국 경제·정치 기사 ({len(kr_articles)}개)*\n"
             for i, article in enumerate(kr_articles, 1):
-                message += f"{i}. <{article.url}|{article.title[:50]}...>\n"
+                section_info = f"[{article.section}]" if article.section else ""
+                message += f"{i}. {section_info} <{article.url}|{article.title[:45]}...>\n"
+            
+            message += f"\n🇺🇸 *미국 경제·정치 기사 ({len(us_articles)}개)*\n"
+            for i, article in enumerate(us_articles, 1):
+                section_info = f"[{article.section}]" if article.section else ""
+                message += f"{i}. {section_info} <{article.url}|{article.title[:45]}...>\n"
             
             message += f"\n🔗 <https://lumina-next-picker.vercel.app/news|전체 뉴스 보기>"
             
@@ -271,11 +317,12 @@ async def send_daily_slack_notification():
             slack.send_message(message)
             
             return {
-                "message": "일일 뉴스 알림이 전송되었습니다.",
+                "message": "경제·정치 뉴스 알림이 전송되었습니다.",
                 "status": "sent",
                 "result": {
                     "KR": len(kr_articles),
-                    "total": len(kr_articles)
+                    "US": len(us_articles),
+                    "total": len(kr_articles) + len(us_articles)
                 }
             }
             
@@ -283,8 +330,97 @@ async def send_daily_slack_notification():
             db.close()
             
     except Exception as e:
-        logger.error(f"Daily notification error: {e}")
-        slack.notify_error(str(e), "일일 뉴스 알림 전송 실패")
+        logger.error(f"Economy politics notification error: {e}")
+        slack.notify_error(str(e), "경제·정치 뉴스 알림 전송 실패")
+        return {"error": str(e)}
+
+@app.get("/api/news/economy-politics")
+async def get_economy_politics_news(days: int = 1, limit: int = 20):
+    """경제, 정치 기사를 JSON 형태로 반환합니다"""
+    try:
+        from datetime import datetime, timedelta
+        from sqlalchemy import or_
+        from app.database import SessionLocal, NewsArticle
+        
+        # 날짜 기준으로 뉴스 가져오기
+        cutoff_date = datetime.utcnow() - timedelta(days=days)
+        
+        db = SessionLocal()
+        try:
+            # 경제, 정치 기사 필터링 조건
+            economy_politics_filter = or_(
+                NewsArticle.section.in_(['business', 'economy', 'politics', 'finance']),
+                NewsArticle.title.ilike('%경제%'),
+                NewsArticle.title.ilike('%정치%'),
+                NewsArticle.title.ilike('%금융%'),
+                NewsArticle.title.ilike('%투자%'),
+                NewsArticle.title.ilike('%주식%'),
+                NewsArticle.title.ilike('%부동산%'),
+                NewsArticle.title.ilike('%기업%'),
+                NewsArticle.title.ilike('%정부%'),
+                NewsArticle.title.ilike('%의회%'),
+                NewsArticle.title.ilike('%대통령%'),
+                NewsArticle.title.ilike('%총리%'),
+                NewsArticle.title.ilike('%장관%'),
+                NewsArticle.title.ilike('%economy%'),
+                NewsArticle.title.ilike('%politics%'),
+                NewsArticle.title.ilike('%business%'),
+                NewsArticle.title.ilike('%finance%'),
+                NewsArticle.title.ilike('%government%'),
+                NewsArticle.title.ilike('%congress%'),
+                NewsArticle.title.ilike('%senate%'),
+                NewsArticle.title.ilike('%president%'),
+                NewsArticle.title.ilike('%federal%'),
+                NewsArticle.title.ilike('%market%'),
+                NewsArticle.title.ilike('%stock%'),
+                NewsArticle.title.ilike('%investment%')
+            )
+            
+            # 한국 경제, 정치 기사
+            kr_articles = db.query(NewsArticle).filter(
+                NewsArticle.country == 'KR',
+                NewsArticle.created_at >= cutoff_date,
+                economy_politics_filter
+            ).order_by(NewsArticle.created_at.desc()).limit(limit).all()
+            
+            # 미국 경제, 정치 기사
+            us_articles = db.query(NewsArticle).filter(
+                NewsArticle.country == 'US',
+                NewsArticle.created_at >= cutoff_date,
+                economy_politics_filter
+            ).order_by(NewsArticle.created_at.desc()).limit(limit).all()
+            
+            # JSON 형태로 변환
+            def article_to_dict(article):
+                return {
+                    "id": article.id,
+                    "title": article.title,
+                    "url": article.url,
+                    "source": article.source,
+                    "published": article.published.isoformat() if article.published else None,
+                    "summary": article.summary,
+                    "section": article.section,
+                    "country": article.country,
+                    "created_at": article.created_at.isoformat() if article.created_at else None
+                }
+            
+            return {
+                "days": days,
+                "limit": limit,
+                "summary": {
+                    "KR": len(kr_articles),
+                    "US": len(us_articles),
+                    "total": len(kr_articles) + len(us_articles)
+                },
+                "news_kr": [article_to_dict(article) for article in kr_articles],
+                "news_us": [article_to_dict(article) for article in us_articles]
+            }
+            
+        finally:
+            db.close()
+            
+    except Exception as e:
+        logger.error(f"Economy politics news API error: {e}")
         return {"error": str(e)}
 
 # 리다이렉트
