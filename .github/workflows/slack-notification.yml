@@ -11,12 +11,12 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Send daily Slack notification
+    - name: Send economy politics Slack notification
       run: |
-        echo "Sending daily Slack notification..."
-        curl -X POST https://lumina-next-picker.vercel.app/api/slack/daily-notification
-        echo "Daily notification sent!"
+        echo "Sending economy politics Slack notification..."
+        curl -X POST https://lumina-next-picker.vercel.app/api/slack/economy-politics-notification
+        echo "Economy politics notification sent!"
         
     - name: Notify completion
       run: |
-        echo "✅ Daily Slack notification completed at $(date)"
+        echo "✅ Economy politics Slack notification completed at $(date)"
