@@ -296,7 +296,8 @@ def classify_news_section(title: str, summary: str = "") -> str:
         'democrat', 'republican', 'campaign', 'vote', 'voting', 'poll', 'polls',
         'white house', 'capitol', 'legislation', 'bill', 'law', 'policy',
         'minister', 'parliament', 'election', 'vote', 'campaign', 'political party',
-        '정치', '대선', '선거', '국회', '정부', '여당', '야당', '정책', '법안'
+        '정치', '대선', '선거', '국회', '정부', '여당', '야당', '정책', '법안', '대통령', '총리', '장관',
+        '의회', '검찰', '법무부', '국정감사', '여야', '여당', '야당', '정당', '투표'
     ]
     
     # 경제/비즈니스 관련 키워드
@@ -305,7 +306,8 @@ def classify_news_section(title: str, summary: str = "") -> str:
         'trade', 'commerce', 'investment', 'investor', 'bank', 'banking', 'money',
         'dollar', 'euro', 'currency', 'inflation', 'recession', 'gdp', 'unemployment',
         'company', 'corporation', 'ceo', 'executive', 'profit', 'revenue', 'earnings',
-        '경제', '금융', '주식', '투자', '은행', '기업', '매출', '수익', '인플레이션'
+        '경제', '금융', '주식', '투자', '은행', '기업', '매출', '수익', '인플레이션',
+        '부동산', '원화', '달러', '환율', '증시', '코스피', '코스닥', '채권', '금리'
     ]
     
     # 기술 관련 키워드
@@ -331,7 +333,7 @@ def classify_news_section(title: str, summary: str = "") -> str:
         'actor', 'actress', 'director', 'producer', 'celebrity', 'star', 'hollywood',
         'music', 'song', 'album', 'artist', 'singer', 'concert', 'performance',
         'game', 'gaming', 'video game', 'streaming', 'netflix', 'disney',
-        '엔터테인먼트', '영화', '드라마', '연예인', '가수', '음악', '게임'
+        '엔터테인먼트', '영화', '드라마', '연예인', '가수', '음악', '게임', '요가원', '개원'
     ]
     
     # 건강 관련 키워드
