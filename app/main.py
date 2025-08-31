@@ -287,16 +287,16 @@ async def send_economy_politics_notification():
             # 한국 경제, 정치 기사 20개
             kr_articles = db.query(NewsArticle).filter(
                 NewsArticle.country == 'KR',
-                NewsArticle.created_at >= cutoff_date,
+                NewsArticle.published >= cutoff_date,
                 economy_politics_filter
-            ).order_by(NewsArticle.created_at.desc()).limit(20).all()
+            ).order_by(NewsArticle.published.desc()).limit(20).all()
             
             # 미국 경제, 정치 기사 20개
             us_articles = db.query(NewsArticle).filter(
                 NewsArticle.country == 'US',
-                NewsArticle.created_at >= cutoff_date,
+                NewsArticle.published >= cutoff_date,
                 economy_politics_filter
-            ).order_by(NewsArticle.created_at.desc()).limit(20).all()
+            ).order_by(NewsArticle.published.desc()).limit(20).all()
             
             # Slack 메시지 구성
             message = "📊 *경제·정치 뉴스 요약*\n\n"
@@ -379,16 +379,16 @@ async def get_economy_politics_news(days: int = 1, limit: int = 20):
             # 한국 경제, 정치 기사
             kr_articles = db.query(NewsArticle).filter(
                 NewsArticle.country == 'KR',
-                NewsArticle.created_at >= cutoff_date,
+                NewsArticle.published >= cutoff_date,
                 economy_politics_filter
-            ).order_by(NewsArticle.created_at.desc()).limit(limit).all()
+            ).order_by(NewsArticle.published.desc()).limit(limit).all()
             
             # 미국 경제, 정치 기사
             us_articles = db.query(NewsArticle).filter(
                 NewsArticle.country == 'US',
-                NewsArticle.created_at >= cutoff_date,
+                NewsArticle.published >= cutoff_date,
                 economy_politics_filter
-            ).order_by(NewsArticle.created_at.desc()).limit(limit).all()
+            ).order_by(NewsArticle.published.desc()).limit(limit).all()
             
             # JSON 형태로 변환
             def article_to_dict(article):

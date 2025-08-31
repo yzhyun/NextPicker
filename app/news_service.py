@@ -18,18 +18,7 @@ from app.slack_notifier import slack
 
 logger = logging.getLogger(__name__)
 
-# RSS 피드 목록
-US_FEEDS = [
-    "https://feeds.bbci.co.uk/news/rss.xml",
-    "https://rss.cnn.com/rss/edition.rss",
-    "https://feeds.npr.org/1001/rss.xml",
-]
-
-KR_FEEDS = [
-    "https://www.yonhapnews.co.kr/feed/headlines.xml",
-    "https://www.koreaherald.com/rss.xml",
-    "https://www.koreatimes.co.kr/rss/rss.xml",
-]
+# RSS 피드 목록은 rss_feeds.py에서 관리
 
 def get_article_id(url: str) -> str:
     """URL의 MD5 해시를 반환합니다."""
@@ -264,7 +253,10 @@ def refresh_all_feeds() -> Dict[str, int]:
     
     # 슬랙 알림: 피드 새로고침 완료
     total_success = sum(results.values())
-    total_feeds = len(US_FEEDS) + len(KR_FEEDS)
+    # 실제 사용된 피드 개수 계산
+    us_feeds = get_feeds_by_country('US')
+    kr_feeds = get_feeds_by_country('KR')
+    total_feeds = len(us_feeds) + len(kr_feeds)
     slack.notify_feed_refresh(total_success, total_feeds)
     
     logger.info(f"Feed refresh completed: {results}")
