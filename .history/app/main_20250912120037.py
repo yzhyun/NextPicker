@@ -146,8 +146,8 @@ async def legacy_view_redirect(days_us: int = 1, days_kr: int = 1):
     """구 버전 URL 호환성"""
     return RedirectResponse(url=f"/news?days_us={days_us}&days_kr={days_kr}", status_code=307)
 
-# 레거시 헬스체크 (호환성 유지)
+# 헬스체크
 @app.get("/health")
-async def legacy_health_check():
-    """레거시 헬스체크 엔드포인트 (호환성 유지)"""
+async def health_check():
+    """헬스체크 엔드포인트"""
     return {"status": "healthy", "timestamp": time.time()}
