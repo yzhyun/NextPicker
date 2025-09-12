@@ -37,3 +37,6 @@ media/
 .github/workflows/daily-news-collection.yml
 .github/workflows/slack-notification.yml
 news.db
+
+# History files
+.history/

@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 from dateutil import parser
 from typing import List, Dict, Optional
 from app.database import get_db, NewsArticle
+from app.repositories import NewsRepository
 from app.rss_feeds import get_feeds_by_country, get_feeds_by_section, get_feed_info
 import re
 
@@ -89,38 +90,24 @@ def fetch_rss_feed(feed_url: str, country: str = None) -> List[Dict[str, Any]]:
 
 def save_articles_to_db(articles: List[Dict[str, Any]], country: str, db: Session) -> int:
     """뉴스 기사들을 데이터베이스에 저장합니다."""
+    repo = NewsRepository(db)
     saved_count = 0
     
     for article_data in articles:
         try:
-            # 기존 기사 확인
-            existing = db.query(NewsArticle).filter(
-                NewsArticle.url == article_data['url']
-            ).first()
+            # 기사 데이터 준비
+            article_data['id'] = get_article_id(article_data['url'])
+            article_data['country'] = country
             
-            if existing:
-                continue  # 이미 존재하면 건너뛰기
-            
-            # 새 기사 생성
-            article = NewsArticle(
-                id=get_article_id(article_data['url']),
-                title=article_data['title'],
-                url=article_data['url'],
-                source=article_data['source'],
-                published=article_data['published'],
-                summary=article_data['summary'],
-                section=article_data.get('section', 'general'),
-                country=country
-            )
-            
-            db.add(article)
-            saved_count += 1
+            # 저장 시도
+            if repo.save_article(article_data):
+                saved_count += 1
             
         except Exception as e:
             logger.error(f"Error saving article {article_data.get('url', 'unknown')}: {e}")
     
     try:
-        db.commit()
+        repo.commit()
         logger.info(f"Saved {saved_count} new articles for {country}")
         
         # 슬랙 알림: 데이터 저장 완료
@@ -128,7 +115,6 @@ def save_articles_to_db(articles: List[Dict[str, Any]], country: str, db: Sessio
             slack.notify_data_saved(country, saved_count)
             
     except Exception as e:
-        db.rollback()
         logger.error(f"Database commit failed: {e}")
         slack.notify_error(str(e), "데이터베이스 저장 실패")
     
@@ -162,29 +148,8 @@ def get_news_by_section(section: str, country: str = None, days: int = 3, limit:
     """특정 섹션의 뉴스를 가져옵니다."""
     db = next(get_db())
     try:
-        # PostgreSQL에서 한국 시각으로 필터링
-        query = db.query(NewsArticle).filter(
-            NewsArticle.section == section,
-            text(f"published >= now() - interval '{days} days'")
-        )
-        
-        if country:
-            query = query.filter(NewsArticle.country == country.upper())
-        
-        articles = query.order_by(NewsArticle.published.desc()).limit(limit).all()
-        
-        return [
-            {
-                'title': article.title,
-                'url': article.url,
-                'source': article.source,
-                'published': article.published,
-                'summary': article.summary,
-                'section': article.section,
-                'country': article.country
-            }
-            for article in articles
-        ]
+        repo = NewsRepository(db)
+        return repo.get_news_by_section(section, country, days, limit)
     finally:
         db.close()
 
@@ -192,38 +157,8 @@ def get_recent_news(country: str, days: int = 3, limit: int = 50) -> List[Dict[s
     """데이터베이스에서 최근 뉴스를 가져옵니다."""
     db = next(get_db())
     try:
-        # 데이터베이스 타입에 따라 다른 쿼리 사용
-        import os
-        database_url = os.getenv("DATABASE_URL", "")
-        
-        if database_url and "postgresql" in database_url:
-            # PostgreSQL용 쿼리
-            articles = db.query(NewsArticle).filter(
-                NewsArticle.country == country.upper(),
-                text(f"published >= now() - interval '{days} days'")
-            ).order_by(NewsArticle.published.desc()).limit(limit).all()
-        else:
-            # SQLite용 쿼리
-            from datetime import datetime, timedelta
-            cutoff_date = datetime.now() - timedelta(days=days)
-            articles = db.query(NewsArticle).filter(
-                NewsArticle.country == country.upper(),
-                NewsArticle.published >= cutoff_date
-            ).order_by(NewsArticle.published.desc()).limit(limit).all()
-        
-        return [
-            {
-                'title': article.title,
-                'url': article.url,
-                'source': article.source,
-                'published': article.published,
-                'summary': article.summary,
-                'section': article.section,
-                'country': article.country,
-                'created_at': article.created_at # Ensure created_at is included for summary calculation
-            }
-            for article in articles
-        ]
+        repo = NewsRepository(db)
+        return repo.get_recent_news(country, days, limit)
     finally:
         db.close()
 
