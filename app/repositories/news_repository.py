@@ -249,7 +249,6 @@ class NewsRepository:
             for row in result.fetchall():
                 articles.append({
                     'title': row.title,
-                    'url': row.url,
                     'source': row.source,
                     'published': row.published,
                     'summary': row.summary,

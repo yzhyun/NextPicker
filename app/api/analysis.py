@@ -4,7 +4,7 @@ from fastapi import APIRouter, Query
 
 from app.database import get_db
 from app.repositories import NewsRepository
-from app.utils import create_success_response, handle_api_error, validate_pagination_params
+from app.utils import create_success_response, handle_api_error, validate_pagination_params, format_news_article
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/analysis", tags=["analysis"])
@@ -29,9 +29,9 @@ async def get_us_news_for_analysis(
         # TSV 데이터 생성
         tsv_data = []
         for article in articles:
-            # datetime을 문자열로 변환
-            published_str = article['published'].isoformat() if article['published'] else ''
-            tsv_row = f"{article['title']}\t{article['url']}\t{article['source']}\t{published_str}\t{article['summary'] or ''}\t{article['section'] or 'general'}\t{article['country']}"
+            # published는 이미 문자열이므로 그대로 사용
+            published_str = article['published'] if article['published'] else ''
+            tsv_row = f"{article['title']}\t{article['source']}\t{published_str}\t{article['summary'] or ''}\t{article['section'] or 'general'}\t{article['country']}"
             tsv_data.append(tsv_row)
         
         return create_success_response(
