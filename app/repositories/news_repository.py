@@ -24,17 +24,18 @@ class NewsRepository:
         try:
             if self.is_postgresql:
                 # PostgreSQL용 Raw SQL
+                cutoff_date = datetime.now() - timedelta(days=days)
                 query = text("""
                     SELECT id, title, url, source, published, summary, section, country, created_at
                     FROM news_articles 
                     WHERE country = :country 
-                      AND published >= NOW() - INTERVAL ':days days'
+                      AND published >= :cutoff_date
                     ORDER BY published DESC 
                     LIMIT :limit
                 """)
                 result = self.db.execute(query, {
                     'country': country.upper(),
-                    'days': days,
+                    'cutoff_date': cutoff_date,
                     'limit': limit
                 })
             else:
@@ -216,16 +217,17 @@ class NewsRepository:
         try:
             if self.is_postgresql:
                 # PostgreSQL용 Raw SQL
+                cutoff_date = datetime.now() - timedelta(days=days)
                 query = text("""
                     SELECT id, title, source, published, summary, section, country, created_at
                     FROM news_articles 
                     WHERE country = 'US' 
-                      AND published >= NOW() - INTERVAL ':days days'
+                      AND published >= :cutoff_date
                     ORDER BY published DESC 
                     LIMIT :limit
                 """)
                 result = self.db.execute(query, {
-                    'days': days,
+                    'cutoff_date': cutoff_date,
                     'limit': limit
                 })
             else:

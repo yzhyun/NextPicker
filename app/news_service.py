@@ -208,7 +208,10 @@ def build_summary(us_news: List[Dict], kr_news: List[Dict], days_us: int = 3, da
         valid_news = [n for n in all_news if n.get('created_at')]
         if valid_news:
             latest_news = max(valid_news, key=lambda x: x['created_at'])
-            last_update = latest_news['created_at'].strftime("%Y-%m-%d %H:%M:%S KST")
+            if hasattr(latest_news['created_at'], 'strftime'):
+                last_update = latest_news['created_at'].strftime("%Y-%m-%d %H:%M:%S KST")
+            else:
+                last_update = str(latest_news['created_at'])
     
     return {
         'total': len(us_news) + len(kr_news),
