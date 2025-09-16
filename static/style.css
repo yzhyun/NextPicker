@@ -318,6 +318,10 @@ body {
   color: #4a5568;
   line-height: 1.6;
   font-size: 0.95rem;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 /* Loading */
@@ -428,6 +432,14 @@ body {
   
   .news-title {
     font-size: 1rem;
+  }
+  
+  .news-summary {
+    word-break: break-all;
+    overflow-wrap: anywhere;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+    -ms-hyphens: auto;
   }
 }
 
