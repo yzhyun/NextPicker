@@ -9,7 +9,6 @@ import feedparser
 import requests
 from dateutil import parser
 from bs4 import BeautifulSoup
-import re
 from app.database import get_db, NewsArticle
 from app.repositories import NewsRepository
 from app.rss_feeds import get_feeds_by_country, get_feeds_by_section, get_feed_info

@@ -40,3 +40,8 @@ news.db
 
 # History files
 .history/
+
+# Project specific
+*.zip
+app.log
+output/

@@ -11,7 +11,7 @@ from app.news_service import get_recent_news, build_summary
 from app.slack_notifier import slack
 
 # API 라우터 import
-from app.api import news, feeds, analysis, notifications, health
+from app.api import news, feeds, analysis, notifications, health, cleanup
 
 # FastAPI 앱 생성
 app = FastAPI(
@@ -32,6 +32,7 @@ app.include_router(feeds.router)
 app.include_router(analysis.router)
 app.include_router(notifications.router)
 app.include_router(health.router)
+app.include_router(cleanup.router)
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
