@@ -34,22 +34,13 @@ def extract_summary(content: str) -> str:
         soup = BeautifulSoup(content, 'html.parser')
         text = soup.get_text()
         
-        # HTML 엔티티 디코딩
-        text = text.replace('&lt;', '<').replace('&gt;', '>').replace('&amp;', '&')
-        
-        # 정규식으로 남은 HTML 태그 제거
-        text = re.sub(r'<[^>]+>', '', text)
-        
         # 공백 정리
         text = ' '.join(text.split())
         
         # 200자로 제한
         return text[:200] + "..." if len(text) > 200 else text
-    except Exception as e:
-        logger.warning(f"Failed to extract summary: {e}")
-        # HTML 태그만 제거하고 반환
-        text = re.sub(r'<[^>]+>', '', content)
-        return text[:200] + "..." if len(text) > 200 else text
+    except:
+        return content[:200] + "..." if len(content) > 200 else content
 
 def fetch_rss_feed(feed_url: str, country: str = None) -> List[Dict[str, Any]]:
     """RSS 피드에서 뉴스를 가져옵니다."""
