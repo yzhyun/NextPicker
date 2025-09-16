@@ -8,6 +8,8 @@ from sqlalchemy import text
 import feedparser
 import requests
 from dateutil import parser
+from bs4 import BeautifulSoup
+import re
 from app.database import get_db, NewsArticle
 from app.repositories import NewsRepository
 from app.rss_feeds import get_feeds_by_country, get_feeds_by_section, get_feed_info
@@ -24,16 +26,30 @@ def get_article_id(url: str) -> str:
 
 def extract_summary(content: str) -> str:
     """HTML 콘텐츠에서 텍스트 요약을 추출합니다."""
+    if not content:
+        return ""
+    
     try:
+        # HTML 태그 제거
         soup = BeautifulSoup(content, 'html.parser')
-        # HTML 태그 제거하고 텍스트만 추출
         text = soup.get_text()
+        
+        # HTML 엔티티 디코딩
+        text = text.replace('&lt;', '<').replace('&gt;', '>').replace('&amp;', '&')
+        
+        # 정규식으로 남은 HTML 태그 제거
+        text = re.sub(r'<[^>]+>', '', text)
+        
         # 공백 정리
         text = ' '.join(text.split())
+        
         # 200자로 제한
         return text[:200] + "..." if len(text) > 200 else text
-    except:
-        return content[:200] + "..." if len(content) > 200 else content
+    except Exception as e:
+        logger.warning(f"Failed to extract summary: {e}")
+        # HTML 태그만 제거하고 반환
+        text = re.sub(r'<[^>]+>', '', content)
+        return text[:200] + "..." if len(text) > 200 else text
 
 def fetch_rss_feed(feed_url: str, country: str = None) -> List[Dict[str, Any]]:
     """RSS 피드에서 뉴스를 가져옵니다."""
