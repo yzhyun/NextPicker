@@ -150,7 +150,7 @@
         .then(response => response.json())
         .then(data => {
           // 데이터 유효성 검사
-          if (!data || !data.data || !Array.isArray(data.data)) {
+          if (!data || !data.data || !data.data.content || !Array.isArray(data.data.content)) {
             console.error('Invalid data format:', data);
             analysisBtn.disabled = false;
             analysisBtn.innerHTML = '<i class="fas fa-chart-bar"></i> AI 분석용 데이터';
@@ -158,7 +158,7 @@
           }
           
           // TSV 데이터를 문자열로 변환
-          const tsvText = data.data.join('\n');
+          const tsvText = data.data.content.join('\n');
           
           // 클립보드에 복사
           navigator.clipboard.writeText(tsvText).then(() => {
