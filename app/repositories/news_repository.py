@@ -79,20 +79,22 @@ class NewsRepository:
         try:
             if self.is_postgresql:
                 # PostgreSQL용 Raw SQL
+                # PostgreSQL용 Raw SQL - cutoff_date 계산
+                cutoff_date = datetime.now() - timedelta(days=days)
                 if country:
                     query = text("""
                         SELECT id, title, url, source, published, summary, section, country, created_at
                         FROM news_articles 
                         WHERE section = :section 
                           AND country = :country
-                          AND published >= NOW() - INTERVAL ':days days'
+                          AND published >= :cutoff_date
                         ORDER BY published DESC 
                         LIMIT :limit
                     """)
                     result = self.db.execute(query, {
                         'section': section,
                         'country': country.upper(),
-                        'days': days,
+                        'cutoff_date': cutoff_date,
                         'limit': limit
                     })
                 else:
@@ -100,13 +102,13 @@ class NewsRepository:
                         SELECT id, title, url, source, published, summary, section, country, created_at
                         FROM news_articles 
                         WHERE section = :section 
-                          AND published >= NOW() - INTERVAL ':days days'
+                          AND published >= :cutoff_date
                         ORDER BY published DESC 
                         LIMIT :limit
                     """)
                     result = self.db.execute(query, {
                         'section': section,
-                        'days': days,
+                        'cutoff_date': cutoff_date,
                         'limit': limit
                     })
             else:
@@ -165,17 +167,18 @@ class NewsRepository:
         """경제/정치 뉴스를 가져옵니다."""
         try:
             if self.is_postgresql:
-                # PostgreSQL용 Raw SQL
+                # PostgreSQL용 Raw SQL - cutoff_date 계산
+                cutoff_date = datetime.now() - timedelta(days=days)
                 query = text("""
                     SELECT id, title, url, source, published, summary, section, country, created_at
                     FROM news_articles 
-                    WHERE published >= NOW() - INTERVAL ':days days'
+                    WHERE published >= :cutoff_date
                       AND section IN ('business', 'politics')
                     ORDER BY published DESC 
                     LIMIT :limit
                 """)
                 result = self.db.execute(query, {
-                    'days': days,
+                    'cutoff_date': cutoff_date,
                     'limit': limit * 2
                 })
             else:

@@ -45,3 +45,10 @@ news.db
 *.zip
 app.log
 output/
+
+# IDE and editor files
+.idea/
+.history/
+
+# Environment files
+.env.py
