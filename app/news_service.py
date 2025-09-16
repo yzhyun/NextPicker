@@ -2,18 +2,15 @@
 import hashlib
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import func, text
+from sqlalchemy import text
 import feedparser
 import requests
-from bs4 import BeautifulSoup
 from dateutil import parser
-from typing import List, Dict, Optional
 from app.database import get_db, NewsArticle
 from app.repositories import NewsRepository
 from app.rss_feeds import get_feeds_by_country, get_feeds_by_section, get_feed_info
-import re
 
 from app.slack_notifier import slack
 
