@@ -8,6 +8,8 @@ class BaseResponse(BaseModel):
     """기본 API 응답 형식"""
     success: bool = True
     message: Optional[str] = None
+    data: Optional[Any] = None
+    meta: Optional[Dict[str, Any]] = None
     timestamp: datetime = Field(default_factory=datetime.now)
     error: Optional[Dict[str, Any]] = None
 
