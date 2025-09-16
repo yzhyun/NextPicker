@@ -222,7 +222,13 @@ def build_summary(us_news: List[Dict], kr_news: List[Dict], days_us: int = 3, da
         if valid_news:
             latest_news = max(valid_news, key=lambda x: x['created_at'])
             if hasattr(latest_news['created_at'], 'strftime'):
-                last_update = latest_news['created_at'].strftime("%Y-%m-%d %H:%M:%S KST")
+                # 한국 시간으로 변환
+                if latest_news['created_at'].tzinfo is None:
+                    # UTC로 가정하고 한국 시간으로 변환
+                    kst_time = latest_news['created_at'].replace(tzinfo=timezone.utc).astimezone(timezone(timedelta(hours=9)))
+                else:
+                    kst_time = latest_news['created_at'].astimezone(timezone(timedelta(hours=9)))
+                last_update = kst_time.strftime("%Y-%m-%d %H:%M:%S KST")
             else:
                 last_update = str(latest_news['created_at'])
     
