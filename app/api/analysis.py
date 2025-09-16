@@ -26,22 +26,17 @@ async def get_us_news_for_analysis(
         finally:
             db.close()
         
-        # TSV 데이터 생성
-        tsv_data = []
+        # 단순 문자열 데이터 생성
+        text_data = []
         for article in articles:
-            # published는 이미 문자열이므로 그대로 사용
-            published_str = article['published'] if article['published'] else ''
-            tsv_row = f"{article['title']}\t{article['source']}\t{published_str}\t{article['summary'] or ''}\t{article['section'] or 'general'}\t{article['country']}"
-            tsv_data.append(tsv_row)
+            text_row = f"제목: {article['title']}\n출처: {article['source']}\n요약: {article['summary'] or '요약 없음'}\n섹션: {article['section'] or 'general'}\n국가: {article['country']}\n---"
+            text_data.append(text_row)
         
         return create_success_response(
-            data={
-                "format": "tsv",
-                "content": tsv_data
-            },
-            message=f"Retrieved {len(tsv_data)} US news articles for analysis",
+            data=text_data,
+            message=f"Retrieved {len(text_data)} US news articles for analysis",
             meta={
-                "count": len(tsv_data),
+                "count": len(text_data),
                 "days": days,
                 "limit": limit
             }

@@ -150,18 +150,18 @@
         .then(response => response.json())
         .then(data => {
           // 데이터 유효성 검사
-          if (!data || !data.data || !data.data.content || !Array.isArray(data.data.content)) {
+          if (!data || !data.data || !Array.isArray(data.data)) {
             console.error('Invalid data format:', data);
             analysisBtn.disabled = false;
             analysisBtn.innerHTML = '<i class="fas fa-chart-bar"></i> AI 분석용 데이터';
             return;
           }
           
-          // TSV 데이터를 문자열로 변환
-          const tsvText = data.data.content.join('\n');
+          // 데이터를 문자열로 변환
+          const textData = data.data.join('\n');
           
           // 클립보드에 복사
-          navigator.clipboard.writeText(tsvText).then(() => {
+          navigator.clipboard.writeText(textData).then(() => {
             analysisBtn.innerHTML = '<i class="fas fa-check"></i> 복사 완료!';
             setTimeout(() => {
               analysisBtn.disabled = false;
@@ -170,7 +170,7 @@
           }).catch(() => {
             // 클립보드 복사 실패 시 fallback
             const textArea = document.createElement('textarea');
-            textArea.value = tsvText;
+            textArea.value = textData;
             document.body.appendChild(textArea);
             textArea.select();
             document.execCommand('copy');
