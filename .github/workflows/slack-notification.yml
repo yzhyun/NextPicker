@@ -13,8 +13,8 @@ jobs:
     steps:
     - name: Send economy politics Slack notification
       run: |
-        echo "Sending economy politics Slack notification..."
-        curl -X POST https://lumina-next-picker.vercel.app/api/slack/economy-politics-notification
+        echo "Sending economy politics Slack notification..."        
+        curl -X POST https://lumina-next-picker.vercel.app/api/v1/notifications/slack/economy-politics
         echo "Economy politics notification sent!"
         
     - name: Notify completion
