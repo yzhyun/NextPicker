@@ -41,7 +41,7 @@ def extract_summary(content: str) -> str:
     except:
         return content[:200] + "..." if len(content) > 200 else content
 
-def fetch_rss_feed(feed_url: str, country: str = None) -> List[Dict[str, Any]]:
+def fetch_rss_feed(feed_url: str, country: str = None, section: str = None) -> List[Dict[str, Any]]:
     """RSS 피드에서 뉴스를 가져옵니다."""
     try:
         feed = feedparser.parse(feed_url)
@@ -71,8 +71,11 @@ def fetch_rss_feed(feed_url: str, country: str = None) -> List[Dict[str, Any]]:
                 elif hasattr(entry.source, 'title'):
                     source = entry.source.title
             
-            # 섹션 분류
-            section = classify_news_section(entry.title, summary)
+            # 섹션 분류 - 섹션이 제공되면 사용, 아니면 키워드 분류
+            if section:
+                article_section = section
+            else:
+                article_section = classify_news_section(entry.title, summary)
             
             articles.append({
                 'title': entry.title,
@@ -80,10 +83,10 @@ def fetch_rss_feed(feed_url: str, country: str = None) -> List[Dict[str, Any]]:
                 'source': source,
                 'published': published,
                 'summary': summary,
-                'section': section
+                'section': article_section
             })
         
-        logger.info(f"Fetched {len(articles)} articles from {feed_url}")
+        logger.info(f"Fetched {len(articles)} articles from {feed_url} (section: {section or 'auto-classified'})")
         return articles
         
     except Exception as e:
@@ -124,28 +127,58 @@ def save_articles_to_db(articles: List[Dict[str, Any]], country: str, db: Sessio
     return saved_count
 
 def collect_news(country: str, days: int = 3) -> List[Dict[str, Any]]:
-    """지정된 국가의 뉴스를 수집하고 저장합니다."""
-    feeds = get_feeds_by_country(country)
+    """지정된 국가의 뉴스를 섹션별로 수집하고 저장합니다."""
+    # 섹션별 피드 사용 (SECTION_FEEDS의 키와 매핑)
+    section_mapping = {
+        'business': 'business',
+        'politics': 'nation',  # politics는 nation으로 매핑
+        'technology': 'technology',
+        'sports': 'sports',
+        'entertainment': 'entertainment',
+        'health': 'health',
+        'science': 'science'
+    }
     
     all_articles = []
     total_saved = 0
     
-    # 각 피드에서 뉴스 가져오기
-    for feed_url in feeds:
-        articles = fetch_rss_feed(feed_url, country)
-        all_articles.extend(articles)
+    # 각 섹션별로 뉴스 수집
+    for section, feed_key in section_mapping.items():
+        try:
+            feeds = get_feeds_by_section(feed_key, country)
+            logger.info(f"Collecting {section} news for {country} from {len(feeds)} feeds")
+            
+            for feed_url in feeds:
+                articles = fetch_rss_feed(feed_url, country, section)
+                all_articles.extend(articles)
+                
+        except Exception as e:
+            logger.error(f"Error collecting {section} news for {country}: {e}")
+            slack.notify_error(str(e), f"{section} 뉴스 수집 실패: {country}")
+            continue
     
-    # 최근 N일 내 기사만 필터링 (Python에서 필터링 제거, SQL에서 처리)
-    recent_articles = all_articles
+    # 일반 피드도 추가로 수집 (fallback)
+    try:
+        general_feeds = get_feeds_by_country(country)
+        logger.info(f"Collecting general news for {country} from {len(general_feeds)} feeds")
+        
+        for feed_url in general_feeds:
+            articles = fetch_rss_feed(feed_url, country)  # 섹션 없이 자동 분류
+            all_articles.extend(articles)
+            
+    except Exception as e:
+        logger.error(f"Error collecting general news for {country}: {e}")
+        slack.notify_error(str(e), f"일반 뉴스 수집 실패: {country}")
     
     # 데이터베이스에 저장
     db = next(get_db())
     try:
-        total_saved = save_articles_to_db(recent_articles, country, db)
+        total_saved = save_articles_to_db(all_articles, country, db)
     finally:
         db.close()
     
-    return recent_articles
+    logger.info(f"Collected {len(all_articles)} total articles for {country}, saved {total_saved} new articles")
+    return all_articles
 
 def get_news_by_section(section: str, country: str = None, days: int = 3, limit: int = 50) -> List[Dict[str, Any]]:
     """특정 섹션의 뉴스를 가져옵니다."""

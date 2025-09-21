@@ -55,7 +55,7 @@
           <i class="fas fa-sync-alt"></i> Refresh
         </button>
         <button id="analysisBtn" class="analysis-btn" onclick="showAnalysis()">
-          <i class="fas fa-chart-bar"></i> AI 분석용 데이터
+          <i class="fas fa-chart-bar"></i> AI 분석용 데이터 (경제/정치/기술) (경제/정치/기술)
         </button>
       </div>
 
@@ -175,7 +175,7 @@
               console.error("Invalid data format:", data);
               analysisBtn.disabled = false;
               analysisBtn.innerHTML =
-                '<i class="fas fa-chart-bar"></i> AI 분석용 데이터';
+                '<i class="fas fa-chart-bar"></i> AI 분석용 데이터 (경제/정치/기술) (경제/정치/기술)';
               return;
             }
 
@@ -192,7 +192,7 @@
                 setTimeout(() => {
                   analysisBtn.disabled = false;
                   analysisBtn.innerHTML =
-                    '<i class="fas fa-chart-bar"></i> AI 분석용 데이터';
+                    '<i class="fas fa-chart-bar"></i> AI 분석용 데이터 (경제/정치/기술)';
                 }, 2000);
               })
               .catch(() => {
@@ -209,7 +209,7 @@
                 setTimeout(() => {
                   analysisBtn.disabled = false;
                   analysisBtn.innerHTML =
-                    '<i class="fas fa-chart-bar"></i> AI 분석용 데이터';
+                    '<i class="fas fa-chart-bar"></i> AI 분석용 데이터 (경제/정치/기술)';
                 }, 2000);
               });
           })
@@ -217,7 +217,7 @@
             console.error("Error:", error);
             analysisBtn.disabled = false;
             analysisBtn.innerHTML =
-              '<i class="fas fa-chart-bar"></i> AI 분석용 데이터';
+              '<i class="fas fa-chart-bar"></i> AI 분석용 데이터 (경제/정치/기술)';
           });
       }
     </script>
