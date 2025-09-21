@@ -74,7 +74,7 @@ class NewsRepository:
             logger.error(f"Error getting recent news for {country}: {e}")
             raise
     
-    def get_news_by_section(self, section: str, country: Optional[str] = None, days: int = 3, limit: int = 50) -> List[Dict[str, Any]]:
+    def get_news_by_section(self, section: str, country: Optional[str] = None, days: int = 3, limit: int = 50, include_url: bool = True) -> List[Dict[str, Any]]:
         """특정 섹션의 뉴스를 가져옵니다."""
         try:
             if self.is_postgresql:
@@ -82,15 +82,26 @@ class NewsRepository:
                 # PostgreSQL용 Raw SQL - cutoff_date 계산
                 cutoff_date = datetime.now() - timedelta(days=days)
                 if country:
-                    query = text("""
-                        SELECT id, title, url, source, published, summary, section, country, created_at
-                        FROM news_articles 
-                        WHERE section = :section 
-                          AND country = :country
-                          AND published >= :cutoff_date
-                        ORDER BY published DESC 
-                        LIMIT :limit
-                    """)
+                    if include_url:
+                        query = text("""
+                            SELECT id, title, url, source, published, summary, section, country, created_at
+                            FROM news_articles 
+                            WHERE section = :section 
+                              AND country = :country
+                              AND published >= :cutoff_date
+                            ORDER BY published DESC 
+                            LIMIT :limit
+                        """)
+                    else:
+                        query = text("""
+                            SELECT id, title, source, published, summary, section, country, created_at
+                            FROM news_articles 
+                            WHERE section = :section 
+                              AND country = :country
+                              AND published >= :cutoff_date
+                            ORDER BY published DESC 
+                            LIMIT :limit
+                        """)
                     result = self.db.execute(query, {
                         'section': section,
                         'country': country.upper(),
@@ -98,14 +109,24 @@ class NewsRepository:
                         'limit': limit
                     })
                 else:
-                    query = text("""
-                        SELECT id, title, url, source, published, summary, section, country, created_at
-                        FROM news_articles 
-                        WHERE section = :section 
-                          AND published >= :cutoff_date
-                        ORDER BY published DESC 
-                        LIMIT :limit
-                    """)
+                    if include_url:
+                        query = text("""
+                            SELECT id, title, url, source, published, summary, section, country, created_at
+                            FROM news_articles 
+                            WHERE section = :section 
+                              AND published >= :cutoff_date
+                            ORDER BY published DESC 
+                            LIMIT :limit
+                        """)
+                    else:
+                        query = text("""
+                            SELECT id, title, source, published, summary, section, country, created_at
+                            FROM news_articles 
+                            WHERE section = :section 
+                              AND published >= :cutoff_date
+                            ORDER BY published DESC 
+                            LIMIT :limit
+                        """)
                     result = self.db.execute(query, {
                         'section': section,
                         'cutoff_date': cutoff_date,
@@ -115,15 +136,26 @@ class NewsRepository:
                 # SQLite용 Raw SQL
                 cutoff_date = datetime.now() - timedelta(days=days)
                 if country:
-                    query = text("""
-                        SELECT id, title, url, source, published, summary, section, country, created_at
-                        FROM news_articles 
-                        WHERE section = :section 
-                          AND country = :country
-                          AND published >= :cutoff_date
-                        ORDER BY published DESC 
-                        LIMIT :limit
-                    """)
+                    if include_url:
+                        query = text("""
+                            SELECT id, title, url, source, published, summary, section, country, created_at
+                            FROM news_articles 
+                            WHERE section = :section 
+                              AND country = :country
+                              AND published >= :cutoff_date
+                            ORDER BY published DESC 
+                            LIMIT :limit
+                        """)
+                    else:
+                        query = text("""
+                            SELECT id, title, source, published, summary, section, country, created_at
+                            FROM news_articles 
+                            WHERE section = :section 
+                              AND country = :country
+                              AND published >= :cutoff_date
+                            ORDER BY published DESC 
+                            LIMIT :limit
+                        """)
                     result = self.db.execute(query, {
                         'section': section,
                         'country': country.upper(),
@@ -131,14 +163,24 @@ class NewsRepository:
                         'limit': limit
                     })
                 else:
-                    query = text("""
-                        SELECT id, title, url, source, published, summary, section, country, created_at
-                        FROM news_articles 
-                        WHERE section = :section 
-                          AND published >= :cutoff_date
-                        ORDER BY published DESC 
-                        LIMIT :limit
-                    """)
+                    if include_url:
+                        query = text("""
+                            SELECT id, title, url, source, published, summary, section, country, created_at
+                            FROM news_articles 
+                            WHERE section = :section 
+                              AND published >= :cutoff_date
+                            ORDER BY published DESC 
+                            LIMIT :limit
+                        """)
+                    else:
+                        query = text("""
+                            SELECT id, title, source, published, summary, section, country, created_at
+                            FROM news_articles 
+                            WHERE section = :section 
+                              AND published >= :cutoff_date
+                            ORDER BY published DESC 
+                            LIMIT :limit
+                        """)
                     result = self.db.execute(query, {
                         'section': section,
                         'cutoff_date': cutoff_date,
@@ -148,15 +190,17 @@ class NewsRepository:
             # 결과를 딕셔너리로 변환
             articles = []
             for row in result.fetchall():
-                articles.append({
+                article = {
                     'title': row.title,
-                    'url': row.url,
                     'source': row.source,
                     'published': row.published,
                     'summary': row.summary,
                     'section': row.section,
                     'country': row.country
-                })
+                }
+                if include_url:
+                    article['url'] = row.url
+                articles.append(article)
             
             return articles
         except Exception as e:

@@ -27,7 +27,7 @@ async def get_us_news_for_analysis(
             all_articles = []
             
             for section in target_sections:
-                articles = repo.get_news_by_section(section, 'US', days, limit)
+                articles = repo.get_news_by_section(section, 'US', days, limit, include_url=False)
                 all_articles.extend(articles)
             
             # 섹션별로 정렬 (경제, 정치, 기술 순)
